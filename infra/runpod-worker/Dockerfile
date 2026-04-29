@@ -18,14 +18,16 @@ RUN pip install --no-cache-dir -U pip && \
 # Choose flux for prosumer / SFW work; switch to sdxl + Pony XL for explicit work.
 ARG MODEL_ID=black-forest-labs/FLUX.1-dev
 ARG MODEL_TYPE=flux
+# HF_TOKEN is build-time only — used by download_models.py to pull gated
+# models (Flux Dev). Intentionally NOT exported as ENV so it does not
+# persist in the final image layers.
 ARG HF_TOKEN
 ENV MODEL_ID=${MODEL_ID} \
     MODEL_TYPE=${MODEL_TYPE} \
-    HF_TOKEN=${HF_TOKEN} \
     HF_HOME=/root/.cache/huggingface
 
 COPY download_models.py .
-RUN python download_models.py
+RUN HF_TOKEN=${HF_TOKEN} python download_models.py
 
 COPY handler.py .
 

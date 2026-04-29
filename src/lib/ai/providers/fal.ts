@@ -1,7 +1,19 @@
-// fal.ai adapter (Flux + InstantID for stills, Kling 3.0 for video).
-// This file is a thin scaffold — fill the fetch URLs and request payloads when
-// you wire keys. The shape conforms to GenerationProvider so the route handlers
-// stay identical.
+// fal.ai adapter — Flux LoRA inference for stills, Kling for video.
+//
+// Uses fal's queue API (submit → poll → fetch result) rather than the sync
+// endpoints, so we don't tie up the Next.js request thread on cold starts
+// or long video jobs.
+//
+// fal endpoints used:
+//   stills (with user LoRA):  fal-ai/flux-lora                — apply a
+//                              user's trained LoRA to Flux dev/schnell.
+//   stills (no LoRA, fallback): fal-ai/flux/dev               — bare Flux.
+//   training:                  fal-ai/flux-lora-fast-training — train a LoRA
+//                              from a zip of the user's selfies.
+//   video:                     fal-ai/kling-video/v1/standard/text-to-video
+//
+// For verified-self adult use, fal allows the safety_checker to be set false.
+// Per-pack routing (which endpoint, which grade) lives in src/lib/ai/router.ts.
 
 import type {
   GenerationProvider,
@@ -11,76 +23,221 @@ import type {
   ModerationResult,
 } from "../types";
 
-const FAL_BASE = "https://fal.run";
+const FAL_QUEUE = "https://queue.fal.run";
+const POLL_INTERVAL_MS = 1_500;
+const MAX_POLL_MS = 5 * 60_000;
+
+const PROMPT_HARDFAIL = [
+  /\b(child|teen|minor|underage|young\s*girl|young\s*boy|loli|shota|preteen)\b/i,
+  /\b(celebr(?:ity|ities)|deepfake|nonconsensual|revenge porn)\b/i,
+];
 
 async function preflightPrompt(prompt: string): Promise<ModerationResult> {
-  // Reuse the stub's regex baseline; production also calls Hive's prompt API here.
-  const banned = /\b(child|teen|minor|underage|celebrity|deepfake|nonconsensual)\b/i;
-  if (banned.test(prompt)) return { ok: false, hardFail: true, reasons: ["banned-term"] };
+  const reasons: string[] = [];
+  for (const p of PROMPT_HARDFAIL) if (p.test(prompt)) reasons.push(p.source);
+  if (reasons.length) return { ok: false, hardFail: true, reasons };
   return { ok: true };
 }
 
 async function postModerate(_assets: GeneratedAsset[]): Promise<ModerationResult> {
-  // TODO: call Hive Moderation + Thorn Safer in parallel, fail closed on either error.
+  // TODO: Hive + Thorn Safer in parallel; fail closed on either error.
   return { ok: true };
 }
 
-async function generate(req: GenerationRequest): Promise<GenerationResult> {
+function falKey() {
   const key = process.env.FAL_API_KEY;
-  if (!key) {
-    throw new Error("FAL_API_KEY missing — set it or switch AI_PROVIDER=stub");
-  }
+  if (!key) throw new Error("FAL_API_KEY missing — set it or switch AI_PROVIDER=stub");
+  return key;
+}
 
-  const isVideo = req.type === "video";
-  const endpoint = isVideo ? "fal-ai/kling-video/v1/standard/text-to-video" : "fal-ai/flux/dev";
+interface FalQueueResponse {
+  status_url: string;
+  response_url: string;
+  request_id: string;
+}
 
-  const res = await fetch(`${FAL_BASE}/${endpoint}`, {
+interface FalStatus {
+  status: "IN_QUEUE" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
+  logs?: { message: string }[];
+}
+
+async function falSubmit<T>(endpoint: string, input: object): Promise<T> {
+  const key = falKey();
+
+  // Submit
+  const submit = await fetch(`${FAL_QUEUE}/${endpoint}`, {
     method: "POST",
     headers: {
       Authorization: `Key ${key}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      prompt: req.prompt,
-      // TODO: thread req.modelId (LoRA reference) through the InstantID adapter
-      num_images: req.count ?? (isVideo ? 1 : 4),
-      // graded outputs add a NSFW-allowed pipeline; SFW uses the safety pipeline
-      enable_safety_checker: req.grade === "sfw",
-    }),
+    body: JSON.stringify(input),
   });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`fal error ${res.status}: ${text}`);
+  if (!submit.ok) {
+    throw new Error(`fal submit ${submit.status}: ${await submit.text()}`);
   }
+  const queued = (await submit.json()) as FalQueueResponse;
 
-  const json = (await res.json()) as { images?: { url: string }[]; video?: { url: string } };
+  // Poll
+  const start = Date.now();
+  while (Date.now() - start < MAX_POLL_MS) {
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+    const stat = await fetch(queued.status_url, {
+      headers: { Authorization: `Key ${key}` },
+    });
+    if (!stat.ok) throw new Error(`fal status ${stat.status}`);
+    const j = (await stat.json()) as FalStatus;
+    if (j.status === "COMPLETED") {
+      const out = await fetch(queued.response_url, {
+        headers: { Authorization: `Key ${key}` },
+      });
+      if (!out.ok) throw new Error(`fal response ${out.status}`);
+      return (await out.json()) as T;
+    }
+    if (j.status === "FAILED") {
+      throw new Error(`fal job failed: ${j.logs?.map((l) => l.message).join("; ")}`);
+    }
+  }
+  throw new Error("fal job timed out");
+}
+
+interface FluxResponse {
+  images: { url: string; width: number; height: number }[];
+  seed: number;
+  has_nsfw_concepts?: boolean[];
+}
+
+interface KlingResponse {
+  video: { url: string };
+}
+
+async function generate(req: GenerationRequest): Promise<GenerationResult> {
+  const isVideo = req.type === "video";
+  const count = req.count ?? (isVideo ? 1 : 4);
+  const loraUrl = await mintLoraUrl(req.userId, req.modelId);
   const now = new Date().toISOString();
 
-  const assets: GeneratedAsset[] = (
-    isVideo
-      ? [{ url: json.video?.url ?? "" }]
-      : (json.images ?? []).map((i) => ({ url: i.url }))
-  ).map((a, i) => ({
+  if (isVideo) {
+    const out = await falSubmit<KlingResponse>(
+      "fal-ai/kling-video/v1/standard/text-to-video",
+      {
+        prompt: req.prompt,
+        duration: "5",
+        aspect_ratio: "9:16",
+      },
+    );
+    return {
+      assets: [
+        {
+          id: `fal-${Date.now()}-0`,
+          url: out.video.url,
+          type: "video",
+          mimeType: "video/mp4",
+          width: 1080,
+          height: 1920,
+          durationSec: 5,
+          exif: {
+            aiGenerated: true,
+            aiModel: "kling-v1",
+            prompt: req.prompt,
+            grade: req.grade,
+            sourceUserId: req.userId,
+            createdAt: now,
+          },
+          art: "bg-blush",
+        },
+      ],
+    };
+  }
+
+  // Stills — use flux-lora when we have a user LoRA, plain flux otherwise.
+  const endpoint = loraUrl ? "fal-ai/flux-lora" : "fal-ai/flux/dev";
+  const negative =
+    req.grade === "sfw"
+      ? "nsfw, nudity, exposed breast, exposed genitals, lingerie malfunction"
+      : "low quality, bad anatomy, distorted, watermark, text";
+
+  const input: Record<string, unknown> = {
+    prompt: req.prompt,
+    negative_prompt: negative,
+    num_images: count,
+    image_size: { width: 1024, height: 1280 },
+    num_inference_steps: 28,
+    guidance_scale: 3.5,
+    enable_safety_checker: req.grade === "sfw",
+  };
+  if (loraUrl) {
+    input.loras = [{ path: loraUrl, scale: 0.85 }];
+  }
+
+  const out = await falSubmit<FluxResponse>(endpoint, input);
+
+  const assets: GeneratedAsset[] = out.images.map((img, i) => ({
     id: `fal-${Date.now()}-${i}`,
-    url: a.url,
-    type: isVideo ? "video" : "image",
-    mimeType: isVideo ? "video/mp4" : "image/jpeg",
-    width: isVideo ? 1080 : 1024,
-    height: isVideo ? 1920 : 1280,
-    durationSec: isVideo ? 5 : undefined,
+    url: img.url,
+    type: "image" as const,
+    mimeType: "image/jpeg",
+    width: img.width,
+    height: img.height,
     exif: {
       aiGenerated: true,
-      aiModel: isVideo ? "kling-3.0" : "flux-instantid",
+      aiModel: loraUrl ? "flux-lora" : "flux-dev",
       prompt: req.prompt,
       grade: req.grade,
       sourceUserId: req.userId,
       createdAt: now,
     },
-    art: "bg-blush", // unused for real outputs — UI shows the URL
+    art: "bg-blush",
   }));
 
   return { assets };
+}
+
+/**
+ * Resolve the user's trained LoRA URL.
+ *
+ * Production flow:
+ *   1. After /api/train completes, the resulting `.safetensors` is uploaded
+ *      to S3 at e.g. s3://ladida-prod/loras/<userId>/<modelId>.safetensors.
+ *   2. Right before generate(), mint a 5-minute presigned URL.
+ *   3. Pass it to fal as the LoRA path; fal pulls it once and caches.
+ *
+ * Demo fallback:
+ *   FAL_DEFAULT_LORA_URL — point at a public test LoRA so generations
+ *   still work end-to-end without the presigner wired.
+ */
+async function mintLoraUrl(_userId: string, _modelId: string): Promise<string | null> {
+  return process.env.FAL_DEFAULT_LORA_URL ?? null;
+}
+
+/**
+ * Kick off LoRA training on fal-ai/flux-lora-fast-training.
+ *
+ * Expects `images_data_url` to be a public/presigned URL to a zip of 20–30
+ * selfies. Returns a training-job id that you poll separately to know when
+ * the LoRA is ready (the resulting `.safetensors` URL is in the response).
+ */
+export async function trainLora(input: {
+  imagesZipUrl: string;
+  triggerWord: string; // unique token e.g. "vivienne_sks_v1"
+  steps?: number;
+}) {
+  const key = falKey();
+  const submit = await fetch(`${FAL_QUEUE}/fal-ai/flux-lora-fast-training`, {
+    method: "POST",
+    headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      images_data_url: input.imagesZipUrl,
+      trigger_word: input.triggerWord,
+      steps: input.steps ?? 1_000,
+      create_masks: true,
+      is_style: false,
+    }),
+  });
+  if (!submit.ok) {
+    throw new Error(`fal training submit ${submit.status}: ${await submit.text()}`);
+  }
+  return (await submit.json()) as FalQueueResponse;
 }
 
 export const falProvider: GenerationProvider = {

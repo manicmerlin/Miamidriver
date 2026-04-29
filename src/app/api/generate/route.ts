@@ -4,7 +4,7 @@
 //   mode: "set"    — paired feed + platform shots, same scene, shared setId.
 
 import { NextResponse } from "next/server";
-import { getProvider } from "@/lib/ai";
+import { pickProvider } from "@/lib/ai";
 import { getPack, type Grade } from "@/lib/packs";
 import type { VaultItem } from "@/lib/state";
 
@@ -47,10 +47,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "Pack not found." }, { status: 404 });
   }
 
-  const provider = getProvider();
-
-  // Pre-flight prompt classifier (regex + Hive in production).
-  const pre = await provider.preflightPrompt(prompt);
+  // Pre-flight is grade-agnostic; pick any active provider's classifier.
+  // (All providers share the same regex baseline; in production, layer Hive
+  // on top here.)
+  const sample = pickProvider({
+    packId,
+    grade: body.grade ?? pack.defaultGrade,
+    type: pack.id === "video" ? "video" : "image",
+  });
+  const pre = await sample.preflightPrompt(prompt);
   if (!pre.ok) {
     return NextResponse.json(
       {
@@ -104,6 +109,14 @@ export async function POST(req: Request) {
   const totalRequested = plan.reduce((s, p) => s + p.count, 0);
 
   for (const bucket of plan) {
+    // Each grade-bucket picks its own provider — fal for SFW, runpod for
+    // graded, whatever AI_ROUTING says. The whole point of the router.
+    const provider = pickProvider({
+      packId,
+      grade: bucket.grade,
+      type: pack.id === "video" ? "video" : "image",
+    });
+
     let result;
     try {
       result = await provider.generate({
