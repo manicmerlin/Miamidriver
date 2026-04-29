@@ -7,7 +7,7 @@ import { PACKS } from "@/lib/packs";
 import { Heart, Sparkle, Pearl } from "@/components/icons";
 import { cn } from "@/lib/cn";
 
-type Filter = "all" | "favorites" | "sfw" | "graded" | "video";
+type Filter = "all" | "favorites" | "sfw" | "graded" | "video" | "sets";
 
 export default function Vault() {
   const { state, toggleFavorite, removeVault } = useAccount();
@@ -22,10 +22,19 @@ export default function Vault() {
       if (filter === "sfw" && v.grade !== "sfw") return false;
       if (filter === "graded" && v.grade !== "graded") return false;
       if (filter === "video" && v.type !== "video") return false;
+      if (filter === "sets" && !v.setId) return false;
       if (packFilter !== "all" && v.packId !== packFilter) return false;
       return true;
     });
   }, [state.vault, filter, packFilter]);
+
+  function selectWholeSet(setId: string) {
+    setSelected((s) => {
+      const next = new Set(s);
+      state.vault.filter((v) => v.setId === setId).forEach((v) => next.add(v.id));
+      return next;
+    });
+  }
 
   function toggleSelected(id: string) {
     setSelected((s) => {
@@ -88,13 +97,13 @@ export default function Vault() {
       <div className="hairline my-6" />
 
       <div className="flex flex-wrap items-center gap-2">
-        {(["all", "favorites", "sfw", "graded", "video"] as Filter[]).map((f) => (
+        {(["all", "favorites", "sfw", "graded", "sets", "video"] as Filter[]).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
             className={cn("chip", filter === f && "chip-active")}
           >
-            {f === "sfw" ? "for the feed" : f === "graded" ? "for the platform" : f}
+            {f === "sfw" ? "for the feed" : f === "graded" ? "for the platform" : f === "sets" ? "sets ✦" : f}
           </button>
         ))}
         <span className="mx-2 h-4 w-px bg-rose/30" />
@@ -123,6 +132,7 @@ export default function Vault() {
             selected={selected.has(it.id)}
             onSelect={() => toggleSelected(it.id)}
             onFavorite={() => toggleFavorite(it.id)}
+            onSelectSet={selectWholeSet}
           />
         ))}
       </div>
@@ -151,11 +161,13 @@ function Tile({
   selected,
   onSelect,
   onFavorite,
+  onSelectSet,
 }: {
   item: VaultItem;
   selected: boolean;
   onSelect: () => void;
   onFavorite: () => void;
+  onSelectSet?: (setId: string) => void;
 }) {
   const pack = PACKS.find((p) => p.id === item.packId);
   return (
@@ -180,6 +192,18 @@ function Tile({
           <Heart className="h-3.5 w-3.5" filled={item.favorite} />
         </button>
       </div>
+      {item.setId && item.setSize && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (item.setId && onSelectSet) onSelectSet(item.setId);
+          }}
+          className="absolute left-2 top-2 z-10 rounded-full bg-champagne-gold px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-noir transition hover:brightness-105"
+          title="select the whole set"
+        >
+          set · {item.setIndex}/{item.setSize}
+        </button>
+      )}
       <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
         <span className="rounded-full bg-pearl/85 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-smoke">
           {pack?.name ?? item.packId}

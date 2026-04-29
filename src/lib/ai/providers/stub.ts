@@ -36,14 +36,20 @@ async function postModerate(_: GeneratedAsset[]): Promise<ModerationResult> {
   return { ok: true };
 }
 
+// Two gradient variants per pack — first half is the "feed" feel,
+// second half is the "platform" feel (deeper saturation, darker glow).
 const ART_BY_PACK: Record<string, string[]> = {
   boudoir: [
     "bg-[radial-gradient(120%_80%_at_30%_20%,#F8D7DA_0%,#E8A5B0_45%,#6B4F5E_100%)]",
     "bg-[radial-gradient(120%_80%_at_70%_30%,#FBF7F2_0%,#E8A5B0_55%,#6B4F5E_100%)]",
+    "bg-[radial-gradient(120%_80%_at_50%_60%,#6B4F5E_0%,#D63384_55%,#1A0F1A_100%)]",
+    "bg-[radial-gradient(120%_80%_at_60%_40%,#E8A5B0_0%,#6B4F5E_60%,#1A0F1A_100%)]",
   ],
   stage: [
     "bg-[radial-gradient(120%_80%_at_70%_30%,#D63384_0%,#1A0F1A_55%,#C9A961_120%)]",
     "bg-[radial-gradient(120%_80%_at_30%_30%,#1A0F1A_0%,#D63384_55%,#E8A5B0_120%)]",
+    "bg-[radial-gradient(120%_80%_at_50%_70%,#1A0F1A_0%,#D63384_40%,#1A0F1A_100%)]",
+    "bg-[radial-gradient(120%_80%_at_60%_50%,#D63384_0%,#1A0F1A_70%,#6B4F5E_120%)]",
   ],
   vacation: [
     "bg-[linear-gradient(160deg,#FBF7F2_0%,#E8D5B7_45%,#E8A5B0_100%)]",
@@ -54,18 +60,23 @@ const ART_BY_PACK: Record<string, string[]> = {
   ],
   "outfit-swap": [
     "bg-[conic-gradient(from_120deg_at_50%_50%,#F8D7DA,#E8D5B7,#FBF7F2,#E8A5B0,#F8D7DA)]",
+    "bg-[conic-gradient(from_60deg_at_50%_50%,#6B4F5E,#D63384,#1A0F1A,#E8A5B0,#6B4F5E)]",
   ],
   "location-swap": [
     "bg-[linear-gradient(45deg,#1A0F1A_0%,#6B4F5E_50%,#F8D7DA_100%)]",
+    "bg-[linear-gradient(45deg,#1A0F1A_0%,#D63384_60%,#6B4F5E_100%)]",
   ],
   video: [
     "bg-[radial-gradient(120%_80%_at_50%_50%,#1A0F1A_0%,#D63384_60%,#E8D5B7_120%)]",
+    "bg-[radial-gradient(120%_80%_at_50%_50%,#1A0F1A_0%,#6B4F5E_50%,#D63384_100%)]",
   ],
 };
 
-function pickArt(packId: string, i: number): string {
+function pickArt(packId: string, i: number, grade: "sfw" | "graded" = "sfw"): string {
   const pool = ART_BY_PACK[packId] ?? ART_BY_PACK.boudoir;
-  return pool[i % pool.length]!;
+  // Different gradients for the two cuts so set members read as paired-but-different.
+  const offset = grade === "graded" ? pool.length : 0;
+  return pool[(i + offset) % pool.length]!;
 }
 
 async function generate(req: GenerationRequest): Promise<GenerationResult> {
@@ -94,7 +105,7 @@ async function generate(req: GenerationRequest): Promise<GenerationResult> {
       sourceUserId: req.userId,
       createdAt: now,
     },
-    art: pickArt(req.packId, i),
+    art: pickArt(req.packId, i, req.grade),
   }));
 
   return { assets, providerJobId: `stub_${Date.now()}` };

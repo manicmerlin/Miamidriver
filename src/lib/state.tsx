@@ -21,6 +21,12 @@ export interface VaultItem {
   watermark: "invisible" | "visible-corner" | "off";
   aiTagged: true;                   // never disable; protects the user
   type: "image" | "video";
+  /** if part of a multi-cut set, all members share the same setId */
+  setId?: string;
+  /** total members in the set this item belongs to */
+  setSize?: number;
+  /** position within the set (1-indexed) */
+  setIndex?: number;
 }
 
 export interface AccountState {
