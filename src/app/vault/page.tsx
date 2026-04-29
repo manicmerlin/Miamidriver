@@ -176,7 +176,14 @@ function Tile({
       <button onClick={onSelect} className="absolute inset-0" aria-label="select">
         <span className="sr-only">select</span>
       </button>
-      <div className={`absolute inset-0 ${item.art}`} />
+      {item.url ? (
+        // Real asset (RunPod / fal / replicate). next/image would also work
+        // here once a remotePatterns entry exists for the storage origin.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={item.url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      ) : (
+        <div className={`absolute inset-0 ${item.art}`} />
+      )}
       <div className="absolute right-2 top-2 z-10 flex gap-1">
         <span className="rounded-full bg-pearl/85 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-smoke">
           {item.grade === "graded" ? "for the platform" : "for the feed"}

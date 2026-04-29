@@ -1,0 +1,10 @@
+runpod==1.7.7
+diffusers>=0.30.0
+transformers>=4.44.0
+accelerate>=0.33.0
+safetensors>=0.4.4
+peft>=0.12.0
+sentencepiece>=0.2.0
+boto3>=1.35.0
+Pillow>=10.4.0
+requests>=2.32.0

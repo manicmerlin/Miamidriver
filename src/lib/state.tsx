@@ -18,6 +18,8 @@ export interface VaultItem {
   favorite: boolean;
   postedTo: string[];               // user-tracked posting log
   art: string;                      // gradient css for placeholder render
+  /** real asset URL when a real provider produced this (RunPod/fal/replicate) */
+  url?: string;
   watermark: "invisible" | "visible-corner" | "off";
   aiTagged: true;                   // never disable; protects the user
   type: "image" | "video";

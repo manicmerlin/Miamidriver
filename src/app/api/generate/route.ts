@@ -104,18 +104,27 @@ export async function POST(req: Request) {
   const totalRequested = plan.reduce((s, p) => s + p.count, 0);
 
   for (const bucket of plan) {
-    const result = await provider.generate({
-      userId: "demo-user",
-      modelId: "demo-model",
-      prompt,
-      packId,
-      presetId,
-      grade: bucket.grade,
-      watermark: body.watermark ?? "invisible",
-      visibleAiBadge: body.visibleAiBadge ?? false,
-      type: pack.id === "video" ? "video" : "image",
-      count: bucket.count,
-    });
+    let result;
+    try {
+      result = await provider.generate({
+        userId: "demo-user",
+        modelId: "demo-model",
+        prompt,
+        packId,
+        presetId,
+        grade: bucket.grade,
+        watermark: body.watermark ?? "invisible",
+        visibleAiBadge: body.visibleAiBadge ?? false,
+        type: pack.id === "video" ? "video" : "image",
+        count: bucket.count,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "unknown provider error";
+      return NextResponse.json(
+        { ok: false, error: `Generation provider blinked: ${msg}`, provider: provider.name },
+        { status: 502 },
+      );
+    }
 
     const post = await provider.postModerate(result.assets);
     if (!post.ok) {
@@ -127,6 +136,7 @@ export async function POST(req: Request) {
 
     for (const a of result.assets) {
       setIndex += 1;
+      const realUrl = a.url && !a.url.startsWith("data:demo") ? a.url : undefined;
       allItems.push({
         id: a.id,
         packId,
@@ -137,6 +147,7 @@ export async function POST(req: Request) {
         favorite: false,
         postedTo: [],
         art: a.art,
+        url: realUrl,
         watermark: body.watermark ?? "invisible",
         aiTagged: true,
         type: a.type,

@@ -563,7 +563,12 @@ function ResultsGrid({ items }: { items: VaultItem[] }) {
             transition={{ duration: 0.7 }}
             className="silk-card marble-overlay aspect-[3/4]"
           >
-            <div className={`absolute inset-0 ${it.art}`} />
+            {it.url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={it.url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            ) : (
+              <div className={`absolute inset-0 ${it.art}`} />
+            )}
             <div className="absolute right-2 top-2 flex gap-1">
               <span className="rounded-full bg-pearl/85 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-smoke">
                 {it.grade === "graded" ? "for the platform" : "for the feed"}

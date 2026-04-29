@@ -5,11 +5,13 @@ import type { GenerationProvider } from "./types";
 import { stubProvider } from "./providers/stub";
 import { falProvider } from "./providers/fal";
 import { replicateProvider } from "./providers/replicate";
+import { runpodProvider } from "./providers/runpod";
 
 const REGISTRY: Record<string, GenerationProvider> = {
   stub: stubProvider,
   fal: falProvider,
   replicate: replicateProvider,
+  runpod: runpodProvider,
 };
 
 export function getProvider(): GenerationProvider {
