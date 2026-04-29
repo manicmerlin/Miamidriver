@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: "Cormorant Garamond", "GT Sectra Display", "Editorial New", serif;
+  --font-body: "Inter", "General Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-script: "Pinyon Script", "La Belle Aurore", "Reckless Neue", cursive;
+  color-scheme: light;
+}
+
+@layer base {
+  html,
+  body {
+    @apply bg-cream text-noir;
+    font-family: var(--font-body);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* numerals get old-style figures, like a couture price tag */
+  .figs-old {
+    font-feature-settings: "onum" on, "lnum" off;
+  }
+
+  ::selection {
+    background: #f8d7da;
+    color: #1a0f1a;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer components {
+  .silk-card {
+    @apply relative overflow-hidden rounded-vanity bg-pearl shadow-vanity;
+  }
+  .silk-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(60% 40% at 30% 0%, rgba(232, 213, 183, 0.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .marble-overlay::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(80% 80% at 30% 20%, rgba(214, 51, 132, 0.05) 0%, transparent 60%),
+      radial-gradient(60% 60% at 80% 90%, rgba(201, 169, 97, 0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hairline {
+    background: linear-gradient(90deg, transparent 0%, #c9a961 50%, transparent 100%);
+    height: 1px;
+    width: 100%;
+  }
+
+  .gold-text {
+    background: linear-gradient(135deg, #e8d5b7 0%, #c9a961 60%, #b1924f 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .pearl-progress {
+    @apply h-1.5 w-full overflow-hidden rounded-full bg-blush/60;
+  }
+  .pearl-progress > span {
+    @apply block h-full rounded-full;
+    background: linear-gradient(90deg, #e8a5b0 0%, #d63384 50%, #c9a961 100%);
+  }
+
+  .btn-rose {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-hot-pink px-6 py-3
+           font-medium text-pearl shadow-pearl transition active:scale-[0.98]
+           hover:shadow-vanity;
+  }
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-champagne-gold px-6 py-3
+           font-medium text-noir shadow-gold transition active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-rose/40
+           bg-pearl/70 px-6 py-3 font-medium text-noir transition hover:bg-pearl;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-rose/30 bg-pearl/80
+           px-3 py-1 text-xs uppercase tracking-[0.18em] text-smoke;
+  }
+  .chip-active {
+    @apply border-hot-pink/50 bg-blush text-noir;
+  }
+
+  /* polaroid develop wrapper */
+  .develop {
+    @apply animate-polaroid-develop;
+  }
+}
