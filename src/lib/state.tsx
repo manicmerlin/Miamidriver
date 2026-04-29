@@ -55,9 +55,11 @@ const DEFAULT: AccountState = {
 
 const KEY = "ladida.account.v1";
 
+type Patch = Partial<AccountState> | ((s: AccountState) => Partial<AccountState>);
+
 const Ctx = createContext<{
   state: AccountState;
-  set: (patch: Partial<AccountState>) => void;
+  set: (patch: Patch) => void;
   spend: (n: number) => boolean;
   topUp: (n: number) => void;
   pushVault: (item: VaultItem) => void;
@@ -85,14 +87,21 @@ export function StateProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, [state, hydrated]);
 
-  const value = useMemo(
+  // Action callbacks are stable across renders. Anything that needs the current
+  // state reads it inside the functional setState updater. This is what stops
+  // useEffects that list these as deps from looping.
+  const actions = useMemo(
     () => ({
-      state,
-      set: (patch: Partial<AccountState>) => setState((s) => ({ ...s, ...patch })),
+      set: (patch: Patch) =>
+        setState((s) => ({ ...s, ...(typeof patch === "function" ? patch(s) : patch) })),
       spend: (n: number) => {
-        if (state.credits < n) return false;
-        setState((s) => ({ ...s, credits: s.credits - n }));
-        return true;
+        let ok = false;
+        setState((s) => {
+          if (s.credits < n) return s;
+          ok = true;
+          return { ...s, credits: s.credits - n };
+        });
+        return ok;
       },
       topUp: (n: number) => setState((s) => ({ ...s, credits: s.credits + n })),
       pushVault: (item: VaultItem) =>
@@ -106,8 +115,10 @@ export function StateProvider({ children }: { children: React.ReactNode }) {
         setState((s) => ({ ...s, vault: s.vault.filter((v) => !ids.includes(v.id)) })),
       reset: () => setState(DEFAULT),
     }),
-    [state, hydrated],
+    [],
   );
+
+  const value = useMemo(() => ({ state, ...actions }), [state, actions]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

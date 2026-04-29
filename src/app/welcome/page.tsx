@@ -10,31 +10,34 @@ import { cn } from "@/lib/cn";
 
 type Step = "intro" | "id" | "consent" | "upload" | "training" | "done";
 
+const MOTIVATIONS = [
+  "Your face. Your model. Your moment. ✦",
+  "We're teaching the model your jawline, darling.",
+  "Memorizing your light. Memorizing your angles.",
+  "Eight minutes from here. Promise.",
+  "Cooking. ✦",
+] as const;
+
 export default function Welcome() {
   const [step, setStep] = useState<Step>("intro");
   const { state, set } = useAccount();
   const router = useRouter();
-
-  const motivations = [
-    "Your face. Your model. Your moment. ✦",
-    "We're teaching the model your jawline, darling.",
-    "Memorizing your light. Memorizing your angles.",
-    "Eight minutes from here. Promise.",
-    "Cooking. ✦",
-  ];
   const [tickIdx, setTickIdx] = useState(0);
 
   useEffect(() => {
     if (step !== "training") return;
     const t = setInterval(() => {
-      set({ trainingProgress: Math.min(100, state.trainingProgress + 4) });
+      set((s) => ({ trainingProgress: Math.min(100, s.trainingProgress + 4) }));
     }, 280);
-    const m = setInterval(() => setTickIdx((i) => (i + 1) % motivations.length), 1900);
+    const m = setInterval(
+      () => setTickIdx((i) => (i + 1) % MOTIVATIONS.length),
+      1900,
+    );
     return () => {
       clearInterval(t);
       clearInterval(m);
     };
-  }, [step, state.trainingProgress, set]);
+  }, [step, set]);
 
   useEffect(() => {
     if (step === "training" && state.trainingProgress >= 100) {
@@ -169,7 +172,7 @@ export default function Welcome() {
               </div>
               <h2 className="mt-3 text-center font-display text-3xl italic">Cooking. ✦</h2>
               <p className="mx-auto mt-2 max-w-xs text-center text-smoke">
-                {motivations[tickIdx]}
+                {MOTIVATIONS[tickIdx]}
               </p>
               <div className="pearl-progress mt-6">
                 <span style={{ width: `${state.trainingProgress}%` }} />
