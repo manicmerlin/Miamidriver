@@ -115,7 +115,7 @@ function PackGrid() {
                   {p.creditsPerImage} cr · {p.id === "video" ? "video" : "image"}
                 </span>
                 <span className="rounded-full bg-pearl/85 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-smoke">
-                  {p.supports.includes("graded") ? "SFW · Graded" : "SFW"}
+                  {p.supports.includes("graded") ? "feed · platform" : "feed"}
                 </span>
               </div>
               <div className="absolute inset-x-0 bottom-0 p-5">

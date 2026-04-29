@@ -166,8 +166,8 @@ export default function GeneratePack({ params }: { params: Promise<{ pack: strin
                 className="mt-0.5 h-4 w-4 accent-hot-pink"
               />
               <span>
-                I'm 18+, I'm generating only of myself, and this output will only go to
-                adult-platform-allowed channels. AI disclosure is on, darling.
+                Quick check, gorgeous: I'm 18+, this is just for me, and it's going to a
+                platform that allows it (OF, Fanvue, Fansly).
               </span>
             </label>
           )}
@@ -198,18 +198,18 @@ export default function GeneratePack({ params }: { params: Promise<{ pack: strin
         <aside className="space-y-4">
           <Sidecard
             icon={<LockKey className="h-3.5 w-3.5" />}
-            title="verified self only"
-            body="The model only knows your face. We hard-block prompts that imply anyone else."
+            title="it's only ever you"
+            body="Your atelier knows your face and only your face. Anyone else is a no, automatically."
           />
           <Sidecard
             icon={<FourPointStar className="h-3.5 w-3.5" />}
-            title="AI-disclosed"
-            body="Every output is EXIF-tagged AI per OF, Fanvue, and Meta ToS. Visible badge optional in /account."
+            title="platform-ready"
+            body="Both cuts come ready for where they're going. You shoot once. The feed and the OF both eat."
           />
           <Sidecard
             icon={<Lipstick className="h-3.5 w-3.5" />}
-            title="moderation"
-            body="Hive + Thorn Safer review every output. Flagged anything ⇒ hard fail, not retry."
+            title="a soft-spoken bouncer"
+            body="A quiet check happens before and after every look. Bad prompts don't make it past the door."
           />
         </aside>
       </div>
@@ -243,7 +243,7 @@ function GradeToggle({
           grade === "sfw" ? "bg-blush text-noir" : "text-smoke hover:text-noir",
         )}
       >
-        SFW
+        for the feed
       </button>
       <button
         disabled={!has("graded")}
@@ -257,7 +257,7 @@ function GradeToggle({
               : "cursor-not-allowed text-smoke/40",
         )}
       >
-        Graded
+        for the platform
       </button>
     </div>
   );
@@ -334,10 +334,7 @@ function ResultsGrid({ items }: { items: VaultItem[] }) {
             <div className={`absolute inset-0 ${it.art}`} />
             <div className="absolute right-2 top-2 flex gap-1">
               <span className="rounded-full bg-pearl/85 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-smoke">
-                {it.grade === "graded" ? "graded" : "SFW"}
-              </span>
-              <span className="rounded-full bg-pearl/85 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-smoke">
-                AI
+                {it.grade === "graded" ? "for the platform" : "for the feed"}
               </span>
             </div>
             <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">

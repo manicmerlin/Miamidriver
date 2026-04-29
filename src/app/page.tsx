@@ -26,18 +26,18 @@ function Hero() {
       <div className="mx-auto max-w-6xl px-6 pb-20 pt-16 md:pt-24">
         <div className="grid items-center gap-10 md:grid-cols-[1.1fr_1fr]">
           <div>
-            <p className="font-script text-2xl text-rose">hello, love —</p>
+            <p className="font-script text-2xl text-rose">hello, here —</p>
             <h1 className="mt-2 font-display text-6xl italic leading-[0.95] tracking-tight text-noir md:text-7xl">
               Your AI <span className="gold-text not-italic">atelier.</span>
               <br />
-              <span className="italic">Bombshell looks</span>
+              <span className="italic">Hot looks,</span>
               <br />
-              on demand.
+              no photographer.
             </h1>
             <p className="mt-6 max-w-md text-base text-smoke">
-              A credit-based photo + video studio for verified dancers and adult creators.
-              Train a model on your own face. Generate IG-safe and platform-graded looks in seconds.
-              Wrapped in something that finally feels made for the girls.
+              Upload twenty selfies. Eight minutes later, you're shooting. A new outfit, a new room,
+              a new city — whenever the feed runs dry or the OF needs a refresh. Built quietly,
+              finally, for the girls.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -51,10 +51,9 @@ function Hero() {
             </div>
 
             <div className="mt-8 flex flex-wrap gap-2 text-xs text-smoke">
-              <span className="chip"><LockKey className="h-3 w-3" /> ID-verified</span>
-              <span className="chip">Self-only</span>
-              <span className="chip">SFW + Graded</span>
-              <span className="chip">Adult-friendly billing</span>
+              <span className="chip">made for the girls</span>
+              <span className="chip">it's only ever you</span>
+              <span className="chip">works on the platforms you actually use</span>
             </div>
           </div>
 
@@ -124,7 +123,7 @@ function Polaroid({
 function PackShowcase({ packs }: { packs: typeof PACKS }) {
   return (
     <section className="relative mx-auto mt-10 max-w-6xl px-6">
-      <SectionHeading kicker="The packs" title="Three looks. Endless variations." />
+      <SectionHeading kicker="The packs" title="Three moods. Endless looks." />
       <div className="mt-8 grid gap-6 md:grid-cols-3">
         {packs.map((p) => (
           <Link key={p.id} href={`/atelier/generate/${p.id}`} className="group">
@@ -137,7 +136,7 @@ function PackShowcase({ packs }: { packs: typeof PACKS }) {
                 </p>
               </div>
               <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-pearl/85 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-smoke">
-                {p.supports.includes("graded") ? <span>SFW · Graded</span> : <span>SFW</span>}
+                {p.supports.includes("graded") ? <span>for the feed · for the platform</span> : <span>for the feed</span>}
               </div>
             </div>
           </Link>
@@ -150,42 +149,44 @@ function PackShowcase({ packs }: { packs: typeof PACKS }) {
 function DualOutput() {
   return (
     <section className="relative mx-auto mt-24 max-w-6xl px-6">
-      <SectionHeading kicker="The wedge" title={<><span className="italic">SFW.</span> & <span className="italic gold-text">Graded.</span></>} />
+      <SectionHeading kicker="The wedge" title={<><span className="italic">One look.</span> <span className="italic gold-text">Two cuts.</span></>} />
       <p className="mx-auto mt-3 max-w-2xl text-center text-smoke">
-        Every look ships in two cuts — one for the public socials that shadowban a shoulder, and one for
-        the platforms that pay. AI disclosure baked into EXIF; visible badge optional.
+        Every photo ships in two versions. The one that lives on your feed without getting nuked,
+        and the one that lives behind the paywall and converts. You shoot once. You post twice.
+        The funnel and the cash both eat.
       </p>
 
       <div className="mt-10 grid gap-6 md:grid-cols-2">
         <div className="silk-card marble-overlay p-7">
           <div className="flex items-center gap-3">
             <div className="rounded-full bg-blush p-2 text-hot-pink"><Heart className="h-4 w-4" /></div>
-            <h3 className="font-display text-3xl italic">Safe for socials</h3>
+            <h3 className="font-display text-3xl italic">For the feed</h3>
           </div>
           <p className="mt-3 text-smoke">
-            IG, TikTok, public Twitter. Pre-flagged through a moderation pass — no NIP slips, no
-            outerwear-as-underwear violations. The look that grows the funnel.
+            Made to survive IG, TikTok, and the public Twitter. No surprise takedowns, no
+            shadowban spirals, no "why did this post get 200 views." The version that grows
+            the audience.
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
-            <span className="chip">IG-safe</span>
-            <span className="chip">TikTok-safe</span>
-            <span className="chip">Auto-tagged</span>
+            <span className="chip">IG-friendly</span>
+            <span className="chip">TikTok-friendly</span>
+            <span className="chip">stays up</span>
           </div>
         </div>
 
         <div className="silk-card marble-overlay p-7 ring-1 ring-champagne/60">
           <div className="flex items-center gap-3">
             <div className="rounded-full bg-champagne-gold p-2 text-noir"><FourPointStar className="h-4 w-4" /></div>
-            <h3 className="font-display text-3xl italic gold-text">Graded</h3>
+            <h3 className="font-display text-3xl italic gold-text">For the platforms that pay</h3>
           </div>
           <p className="mt-3 text-smoke">
-            OnlyFans, Fanvue, Fansly. Adult-platform compliant, watermarked, AI-disclosed per ToS — so
-            the account survives. The look that gets paid.
+            OF, Fanvue, Fansly. The version that drops in your PPV and actually converts. Made
+            to play by each platform's rules so the account keeps the bag.
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
-            <span className="chip">OF-allowed</span>
-            <span className="chip">Fanvue-allowed</span>
-            <span className="chip">EXIF + visible AI tag</span>
+            <span className="chip">OF-ready</span>
+            <span className="chip">Fanvue-ready</span>
+            <span className="chip">made to convert</span>
           </div>
         </div>
       </div>
@@ -195,10 +196,10 @@ function DualOutput() {
 
 function Pricing() {
   const tiers = [
-    { name: "Trial", price: "Free", desc: "5 credits to test. Watermarked. No model.", cta: "Try it", emphasis: false },
-    { name: "Darling", price: "$19.99", suffix: "/mo", desc: "200 credits + 1 personal model. SFW + Graded.", cta: "Choose Darling", emphasis: false },
-    { name: "Bombshell", price: "$49.99", suffix: "/mo", desc: "600 credits, 2 models, 30 video credits. Priority queue.", cta: "Choose Bombshell", emphasis: true },
-    { name: "Icon", price: "$129", suffix: "/mo", desc: "2,000 credits, unlimited models, 150 video, early packs.", cta: "Choose Icon", emphasis: false, gold: true },
+    { name: "Trial", price: "Free", desc: "A few looks on the house. See if she's the one.", cta: "Try it", emphasis: false },
+    { name: "Darling", price: "$19.99", suffix: "/mo", desc: "About 200 looks a month. One face, both cuts. The side-hustle plan.", cta: "Choose Darling", emphasis: false },
+    { name: "Bombshell", price: "$49.99", suffix: "/mo", desc: "Around 600 looks + 30 short videos. Skip the line. The plan most girls land on.", cta: "Choose Bombshell", emphasis: true },
+    { name: "Icon", price: "$129", suffix: "/mo", desc: "Effectively unlimited. Two thousand looks, all the videos, first dibs on every new pack.", cta: "Choose Icon", emphasis: false, gold: true },
   ];
 
   return (
@@ -235,7 +236,7 @@ function Pricing() {
         ))}
       </div>
       <p className="mt-6 text-center text-xs text-smoke">
-        Top-ups: $9.99 / 100 credits · $24.99 / 300 credits. Image = 1 · Kling video = 8 · Veo Lite = 12.
+        Need more? $9.99 buys 100. $24.99 buys 300. Videos cost a few credits each — the math is friendly, we promise.
       </p>
     </section>
   );
@@ -245,23 +246,23 @@ function Compliance() {
   const items = [
     {
       icon: <LockKey className="h-4 w-4" />,
-      title: "Verified self.",
-      body: "Government ID + selfie before any model trains. Persona / Stripe Identity / Veriff. No verification, no atelier.",
+      title: "It's only ever you.",
+      body: "Quick ID check before your atelier opens. No one can pretend to be you here. No one can use someone else's face, either. Your atelier, your face, your rules.",
     },
     {
       icon: <FourPointStar className="h-4 w-4" />,
-      title: "AI-disclosed.",
-      body: "Auto EXIF tag + optional visible badge per OF, Fanvue, and Meta ToS. We protect the account so the account keeps paying.",
+      title: "The account stays safe.",
+      body: "Every look comes platform-ready. No bans, no takedowns, no losing the followers you spent two years building. We've read the fine print so you don't have to.",
     },
     {
       icon: <Lipstick className="h-4 w-4" />,
-      title: "No celebrities, no minors.",
-      body: "Hive + Thorn Safer on every prompt and every output. CSAM-adjacent attempts hard-fail and trigger review.",
+      title: "A strict door policy.",
+      body: "No celebrities. No minors. No exceptions, ever. The girls inside are real, verified, and protected — that's the whole point.",
     },
   ];
   return (
     <section className="relative mx-auto mt-24 max-w-6xl px-6">
-      <SectionHeading kicker="Built-in care" title="The compliance you don't have to think about." />
+      <SectionHeading kicker="A quiet promise" title="Built so you don't have to think about it." />
       <div className="mt-8 grid gap-5 md:grid-cols-3">
         {items.map((i) => (
           <div key={i.title} className="silk-card marble-overlay p-6">
@@ -277,17 +278,18 @@ function Compliance() {
 
 function Testimonials() {
   const quotes = [
-    { q: "Replaced two photoshoots a month. Pays for itself in a Wednesday.", who: "Vivienne · Miami" },
-    { q: "First AI app I didn't immediately delete because it felt cringe.", who: "Sloane · ATL" },
-    { q: "Graded export saved my OF when IG kept shadowbanning the same fit.", who: "K · Vegas" },
+    { q: "Replaced two photoshoots a month. Paid for itself the first Wednesday.", who: "Vivienne · Miami" },
+    { q: "First AI app I didn't delete in five minutes. It actually looks like me.", who: "Roxie · ATL" },
+    { q: "The other cut saved my OF when IG kept blocking the same fit.", who: "N · Vegas" },
+    { q: "Posted three Tuesdays in a row without a single takedown. New record.", who: "Sasha · NYC" },
   ];
   return (
     <section className="relative mx-auto mt-24 max-w-6xl px-6">
       <SectionHeading kicker="From the girls" title="A few notes from the dressing room." />
-      <div className="mt-8 grid gap-5 md:grid-cols-3">
+      <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
         {quotes.map((q) => (
           <figure key={q.who} className="silk-card marble-overlay p-6">
-            <blockquote className="font-display text-2xl italic leading-snug">“{q.q}”</blockquote>
+            <blockquote className="font-display text-xl italic leading-snug">“{q.q}”</blockquote>
             <figcaption className="mt-4 font-script text-base text-rose">— {q.who}</figcaption>
           </figure>
         ))}
@@ -302,7 +304,7 @@ function CTA() {
       <Bow className="mx-auto h-12 w-20 text-hot-pink" />
       <h2 className="mt-4 font-display text-5xl italic">Hi, gorgeous. Let's get you a look.</h2>
       <p className="mx-auto mt-3 max-w-md text-smoke">
-        20 selfies. 8 minutes of training. A vault that fills itself.
+        Twenty selfies. Eight minutes. Months of content.
       </p>
       <Link href="/welcome" className="btn-rose mt-8 text-base">
         Start your atelier ✦

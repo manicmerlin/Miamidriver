@@ -94,7 +94,7 @@ export default function Vault() {
             onClick={() => setFilter(f)}
             className={cn("chip", filter === f && "chip-active")}
           >
-            {f}
+            {f === "sfw" ? "for the feed" : f === "graded" ? "for the platform" : f}
           </button>
         ))}
         <span className="mx-2 h-4 w-px bg-rose/30" />
@@ -167,7 +167,7 @@ function Tile({
       <div className={`absolute inset-0 ${item.art}`} />
       <div className="absolute right-2 top-2 z-10 flex gap-1">
         <span className="rounded-full bg-pearl/85 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-smoke">
-          {item.grade === "graded" ? "graded" : "SFW"}
+          {item.grade === "graded" ? "for the platform" : "for the feed"}
         </span>
         <button
           onClick={(e) => {

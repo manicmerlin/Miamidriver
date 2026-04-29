@@ -12,7 +12,7 @@ export function Footer() {
               <span className="font-display text-2xl italic">La Di Da</span>
             </div>
             <p className="mt-3 max-w-xs text-sm text-smoke">
-              Your AI atelier. Bombshell looks on demand — for the verified girls.
+              Your AI atelier. Hot looks, no photographer — built for the girls who already know.
             </p>
           </div>
 
@@ -25,12 +25,13 @@ export function Footer() {
             ]}
           />
           <FooterCol
-            heading="Care"
+            heading="The fine print"
             links={[
               { href: "/account", label: "Account" },
-              { href: "/legal/disclosure", label: "AI disclosure" },
-              { href: "/legal/2257", label: "2257 records" },
+              { href: "/trust", label: "How we keep you safe" },
               { href: "/legal/privacy", label: "Privacy" },
+              { href: "/legal/disclosure", label: "AI disclosure" },
+              { href: "/legal/2257", label: "Records" },
             ]}
           />
           <FooterCol
@@ -47,7 +48,7 @@ export function Footer() {
 
         <div className="flex flex-col items-center justify-between gap-3 text-xs text-smoke md:flex-row">
           <p className="font-script text-base text-rose">Made for the girls. ✦</p>
-          <p>© {new Date().getFullYear()} La Di Da Atelier — verified-self only. No celebrities, no minors, no exceptions.</p>
+          <p>© {new Date().getFullYear()} La Di Da Atelier · It's only ever you. No celebrities, no minors, no exceptions.</p>
         </div>
       </div>
     </footer>

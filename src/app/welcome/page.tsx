@@ -84,11 +84,11 @@ export default function Welcome() {
             <Card key="id">
               <div className="flex items-center gap-3">
                 <div className="rounded-full bg-blush p-2 text-hot-pink"><LockKey className="h-4 w-4" /></div>
-                <h2 className="font-display text-3xl italic">Verify your ID.</h2>
+                <h2 className="font-display text-3xl italic">Quick "it's you" check.</h2>
               </div>
               <p className="mt-3 text-smoke">
-                We use Persona / Stripe Identity / Veriff. Your government ID + a live selfie. We
-                check it once and never share it. This is the only way the atelier works.
+                Takes about 90 seconds — the only thing we'll ever ask for. It's how we make sure
+                no one else can pretend to be you here, and the only way the atelier opens.
               </p>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 <FauxField label="Legal name" placeholder="Jane Vivienne Doe" />
@@ -115,18 +115,17 @@ export default function Welcome() {
             <Card key="consent">
               <div className="flex items-center gap-3">
                 <div className="rounded-full bg-champagne-gold p-2 text-noir"><FourPointStar className="h-4 w-4" /></div>
-                <h2 className="font-display text-3xl italic gold-text">The consent record.</h2>
+                <h2 className="font-display text-3xl italic gold-text">The little yes.</h2>
               </div>
               <p className="mt-3 text-smoke">
-                A 2257-style record we keep forever, attached to your verified ID. It says: <em>this is
-                me, I consent to the model training on my likeness, and I understand every output is
-                AI-disclosed.</em> Required for the graded channel.
+                One quick agreement so we can open the platform-ready cut for you. Kept private,
+                kept forever, only ever shown to your account.
               </p>
               <ul className="mt-5 list-inside list-[circle] space-y-1 text-sm text-noir/85">
-                <li>I am the person in the uploaded selfies.</li>
-                <li>I am 18+ and was 18+ in every reference photo.</li>
-                <li>I consent to AI generations of my likeness for my own use.</li>
-                <li>I understand outputs are tagged as AI-generated.</li>
+                <li>The girl in the selfies is me.</li>
+                <li>I'm 18+, and was 18+ in every photo I uploaded.</li>
+                <li>It's only ever me — no one else's face goes through here.</li>
+                <li>Looks I make are mine to use, on the platforms that allow them.</li>
               </ul>
               <label className="mt-5 flex items-center gap-3 text-sm">
                 <input
