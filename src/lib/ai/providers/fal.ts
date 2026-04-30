@@ -45,8 +45,17 @@ async function postModerate(_assets: GeneratedAsset[]): Promise<ModerationResult
 }
 
 function falKey() {
-  const key = process.env.FAL_API_KEY;
-  if (!key) throw new Error("FAL_API_KEY missing — set it or switch AI_PROVIDER=stub");
+  // fal's docs name the env var FAL_KEY; our scaffold uses FAL_API_KEY.
+  // Accept either so people who copy-paste from fal's docs aren't tripped up.
+  const key = process.env.FAL_KEY ?? process.env.FAL_API_KEY;
+  if (!key) {
+    throw new Error("FAL_KEY (or FAL_API_KEY) missing — set it or switch AI_PROVIDER=stub");
+  }
+  if (!key.includes(":")) {
+    throw new Error(
+      "FAL_KEY looks malformed — expected '<key_id>:<key_secret>' (one colon, two halves)",
+    );
+  }
   return key;
 }
 
