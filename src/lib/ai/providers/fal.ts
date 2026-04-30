@@ -39,9 +39,9 @@ async function preflightPrompt(prompt: string): Promise<ModerationResult> {
   return { ok: true };
 }
 
-async function postModerate(_assets: GeneratedAsset[]): Promise<ModerationResult> {
-  // TODO: Hive + Thorn Safer in parallel; fail closed on either error.
-  return { ok: true };
+async function postModerate(assets: GeneratedAsset[]): Promise<ModerationResult> {
+  const { moderateAssets } = await import("../../moderation");
+  return moderateAssets(assets);
 }
 
 function falKey() {
@@ -205,18 +205,28 @@ async function generate(req: GenerationRequest): Promise<GenerationResult> {
 /**
  * Resolve the user's trained LoRA URL.
  *
- * Production flow:
- *   1. After /api/train completes, the resulting `.safetensors` is uploaded
- *      to S3 at e.g. s3://ladida-prod/loras/<userId>/<modelId>.safetensors.
- *   2. Right before generate(), mint a 5-minute presigned URL.
- *   3. Pass it to fal as the LoRA path; fal pulls it once and caches.
- *
- * Demo fallback:
- *   FAL_DEFAULT_LORA_URL — point at a public test LoRA so generations
- *   still work end-to-end without the presigner wired.
+ * Tries (in order):
+ *   1. FAL_DEFAULT_LORA_URL — explicit override, useful for smoke-testing.
+ *   2. Real S3 presigner against the bucket where /api/train deposited the
+ *      `.safetensors` after the training job completed.
+ *   3. null — generate() falls through to base Flux without a LoRA.
  */
-async function mintLoraUrl(_userId: string, _modelId: string): Promise<string | null> {
-  return process.env.FAL_DEFAULT_LORA_URL ?? null;
+async function mintLoraUrl(userId: string, modelId: string): Promise<string | null> {
+  const override = process.env.FAL_DEFAULT_LORA_URL;
+  if (override) return override;
+
+  // Only try S3 if it's configured. Otherwise fall back to base model.
+  if (!process.env.S3_BUCKET || !process.env.S3_ACCESS_KEY_ID) return null;
+
+  try {
+    const { presignGet, loraKey, objectExists } = await import("../../s3");
+    const key = loraKey(userId, modelId);
+    if (!(await objectExists(key))) return null;
+    return await presignGet({ key, expiresIn: 300 });
+  } catch (e) {
+    console.warn("[fal] LoRA presign failed, falling back to base model:", e);
+    return null;
+  }
 }
 
 /**

@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { pickProvider } from "@/lib/ai";
 import { getPack, type Grade } from "@/lib/packs";
 import type { VaultItem } from "@/lib/state";
+import { ensureQueue, isQueueEnabled } from "@/lib/queue";
 
 export const runtime = "nodejs";
 
@@ -107,6 +108,42 @@ export async function POST(req: Request) {
   const setId = mode === "set" ? newSetId() : undefined;
   let setIndex = 0;
   const totalRequested = plan.reduce((s, p) => s + p.count, 0);
+
+  // If a Redis-backed queue is on, enqueue each bucket and return job ids
+  // for the client to poll. Otherwise run inline (back-compat with dev).
+  if (isQueueEnabled()) {
+    const q = await ensureQueue();
+    if (q) {
+      const jobIds: string[] = [];
+      for (const bucket of plan) {
+        const job = await q.add(
+          "generate",
+          {
+            userId: "demo-user",
+            modelId: "demo-model",
+            prompt,
+            packId,
+            presetId,
+            grade: bucket.grade,
+            watermark: body.watermark ?? "invisible",
+            visibleAiBadge: body.visibleAiBadge ?? false,
+            type: pack.id === "video" ? "video" : "image",
+            count: bucket.count,
+            setId,
+          },
+          { removeOnComplete: 1000, removeOnFail: 5000 },
+        );
+        if (job.id) jobIds.push(job.id);
+      }
+      return NextResponse.json({
+        ok: true,
+        queued: true,
+        jobIds,
+        setId,
+        totalRequested,
+      });
+    }
+  }
 
   for (const bucket of plan) {
     // Each grade-bucket picks its own provider — fal for SFW, runpod for

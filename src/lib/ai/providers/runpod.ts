@@ -36,11 +36,9 @@ async function preflightPrompt(prompt: string): Promise<ModerationResult> {
   return { ok: true };
 }
 
-async function postModerate(_assets: GeneratedAsset[]): Promise<ModerationResult> {
-  // TODO: parallel calls to Hive + Thorn Safer; fail closed if either errors.
-  // Hive returns NSFW classification levels (we use them for tagging, not blocking).
-  // Thorn Safer is the only hard block — CSAM-class detection ⇒ suspend account.
-  return { ok: true };
+async function postModerate(assets: GeneratedAsset[]): Promise<ModerationResult> {
+  const { moderateAssets } = await import("../../moderation");
+  return moderateAssets(assets);
 }
 
 interface RunPodJobOutput {
@@ -103,23 +101,29 @@ async function submit(input: object): Promise<RunPodJobOutput> {
 }
 
 /**
- * Mint a short-lived presigned URL for the user's LoRA. Replace this with a
- * real S3 presigner (Wasabi / Bunny / Backblaze B2 are all S3-compatible).
+ * Resolve the user's trained LoRA URL for the worker to pull.
  *
- * Example with @aws-sdk/s3-request-presigner:
- *
- *   const command = new GetObjectCommand({
- *     Bucket: process.env.LORA_BUCKET,
- *     Key: `loras/${userId}/${modelId}.safetensors`,
- *   });
- *   return getSignedUrl(s3, command, { expiresIn: 300 });
+ * Tries (in order):
+ *   1. RUNPOD_DEFAULT_LORA_URL — explicit override for smoke-testing.
+ *   2. Real S3 presigner against the bucket where /api/train deposited the
+ *      `.safetensors`. The worker pulls this once per cold start and caches it.
+ *   3. null — worker runs on base model only.
  */
-async function mintLoraUrl(_userId: string, _modelId: string): Promise<string | null> {
+async function mintLoraUrl(userId: string, modelId: string): Promise<string | null> {
   const direct = process.env.RUNPOD_DEFAULT_LORA_URL;
   if (direct) return direct;
-  // Without a presigner wired, the worker will run on the base model only.
-  // That still works — the LoRA just won't be applied. Useful for smoke tests.
-  return null;
+
+  if (!process.env.S3_BUCKET || !process.env.S3_ACCESS_KEY_ID) return null;
+
+  try {
+    const { presignGet, loraKey, objectExists } = await import("../../s3");
+    const key = loraKey(userId, modelId);
+    if (!(await objectExists(key))) return null;
+    return await presignGet({ key, expiresIn: 300 });
+  } catch (e) {
+    console.warn("[runpod] LoRA presign failed, base model only:", e);
+    return null;
+  }
 }
 
 async function generate(req: GenerationRequest): Promise<GenerationResult> {

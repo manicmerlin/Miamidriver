@@ -20,6 +20,7 @@ moderation layer is what makes it sustainable rather than what limits it.
 - **Active branch:** `claude/build-la-di-da-mvp-VTaTh`
 - **Stack:** Next.js 15 (App Router) + TypeScript + Tailwind + Framer Motion
 - **Run locally:** `npm install && npm run dev` → `http://localhost:3000`
+- **Background worker:** `npm run worker` (only meaningful with `REDIS_URL` set)
 
 ## What's built
 
@@ -36,112 +37,91 @@ moderation layer is what makes it sustainable rather than what limits it.
 | `/trust` | Engineering-voice page for processors/lawyers |
 | `/legal/{disclosure,2257,privacy}` | Policy pages |
 
-### Generation pipeline
-- **Pack catalog:** `src/lib/packs.ts` — Boudoir, Stage, Vacation, Editorial, Outfit Swap, Location Swap, Video. Each pack declares which grades it ships (`sfw` and/or `graded`) and a list of presets with prompt strings.
-- **Two modes:** `Single` (one cut + count) and `Set` (paired feed + platform counts; shared `setId` across items, set-position badges in vault).
-- **API:** `POST /api/generate` accepts `{ mode, packId, presetId, prompt, grade?, count?, sfwCount?, nsfwCount? }`. Pre-flight prompt classifier hard-fails minor / celebrity / non-consensual prompts. Routes each grade-bucket through the configured provider. Returns `{ items: VaultItem[], setId? }`.
+### API routes
+| Route | Status |
+|---|---|
+| `POST /api/generate` | ✅ real — pre-flight, route-via-provider, post-mod, BullMQ-enqueue when `REDIS_URL` set |
+| `GET  /api/generate/status` | ✅ real — poll a queued job |
+| `POST /api/train?step=presign` | ✅ real — returns S3 PUT URL for selfies zip |
+| `POST /api/train?step=start` | ✅ real — calls `falProvider.trainLora()` with the presigned zip |
+| `POST /api/train?step=status` | ✅ real — polls fal job, mirrors `.safetensors` into our bucket on completion |
+| `POST /api/verify` | ✅ real — Persona + Veriff hosted-flow URL |
+| `POST /api/verify/webhook` | ✅ real — HMAC-verified Persona webhook |
+| `POST /api/billing/checkout` | ✅ real — CCBill FlexForms / SegPay / NOWPayments |
+| `POST /api/billing/webhook` | ✅ real — CCBill background-post + NOWPayments IPN (HMAC-SHA512) |
+| `POST /api/moderation/incident` | ⚠ logs only — wire to incidents table when DB lands |
 
-### AI provider abstraction (`src/lib/ai/`)
-- `types.ts` — `GenerationProvider` interface (`generate`, `preflightPrompt`, `postModerate`).
-- `router.ts` — `pickProvider({ packId, grade, type })` selects from registry per request. Reads `AI_PROVIDER` (global default) and optional `AI_ROUTING` JSON for per-pack/grade overrides.
-- `providers/stub.ts` — gradient placeholders (works without keys).
-- `providers/fal.ts` — **real**, uses queue API, supports Flux + LoRA + Kling video, exports `trainLora()` helper. Accepts either `FAL_KEY` or `FAL_API_KEY`.
-- `providers/runpod.ts` — **real**, submits to `/v2/{endpoint}/run`, polls `/status`. Pulls user LoRA from a presigned URL.
-- `providers/replicate.ts` — placeholder (throws by design).
+### Generation pipeline
+- **Pack catalog:** `src/lib/packs.ts` — Boudoir, Stage, Vacation, Editorial, Outfit Swap, Location Swap, Video.
+- **Provider abstraction:** `src/lib/ai/`
+  - `types.ts` — `GenerationProvider` interface
+  - `router.ts` — `pickProvider()` per pack/grade via `AI_PROVIDER` + `AI_ROUTING`
+  - `providers/stub.ts` — gradient placeholders
+  - `providers/fal.ts` — **real**, Flux + Kling + `trainLora()`
+  - `providers/runpod.ts` — **real**, submit + poll `/v2/{endpoint}/run`
+  - `providers/replicate.ts` — placeholder (throws by design)
+- **S3 helpers:** `src/lib/s3.ts` — `presignGet`, `presignPut`, `loraKey`, `trainingZipKey`, `objectExists`, `publicUrl`
+- **Moderation:** `src/lib/moderation.ts` — Hive (NSFW classifier, tags only) + Thorn Safer (CSAM, hard block); both run in parallel; fail-closed when `MODERATION_REQUIRED=1`
+- **Queue:** `src/lib/queue.ts` + `scripts/worker.ts` — optional BullMQ. Without `REDIS_URL` the queue is a no-op and `/api/generate` runs inline.
 
 ### Self-hosted RunPod worker (`infra/runpod-worker/`)
 - `Dockerfile` — `pytorch:2.4 + cuda12.4`, bakes the chosen base model in at build time. `HF_TOKEN` is build-arg only (not in final image — security fix).
 - `handler.py` — `runpod.serverless` entry. Loads pipeline once, applies user LoRA per-request, uploads PNGs to S3 with AI-disclosure metadata.
 - `download_models.py` — pre-fetches the base model.
-- `README.md` — full deployment guide (model picker, GitHub auto-build vs Docker push, env vars, LoRA presigner, cost math, troubleshooting).
+- `README.md` — deployment guide (model picker, GitHub auto-build vs Docker push, env vars, LoRA presigner, cost math, troubleshooting).
 
-### State (`src/lib/state.tsx`)
-- Client-side store, persists to localStorage. Will become Postgres + auth session in production.
-- `set()` accepts a patch object **or** a functional updater `(s) => Partial<AccountState>`.
-- Action callbacks are stable across renders (memoized with `[]` deps) to prevent the infinite-loop bug.
+## Live services state (as of this handoff)
 
-### Compliance posture (live in code, documented in `/trust`)
-- ID verification gate (stub now; provider-agnostic).
-- Pre-flight regex hard-fails on banned prompt terms.
-- Post-output moderation hook (Hive + Thorn Safer — TODO to wire real calls).
-- AI EXIF tag on every output, baked into PNG text chunks server-side.
-- Watermark + visible AI badge controls in `/account`.
-- **No Stripe.** Adult-friendly billing only — CCBill / Segpay / Epoch + NOWPayments crypto fallback.
-- **No Cloudflare R2.** Adult-friendly storage only — Wasabi / Bunny / Backblaze B2 / DO Spaces.
-
-## What's wired vs stubbed
-
-| Surface | Status | Notes |
+| Service | State | Notes |
 |---|---|---|
-| fal.ai adapter | ✅ real | Needs `FAL_KEY` (or `FAL_API_KEY`) |
-| RunPod adapter | ✅ real | Needs `RUNPOD_API_KEY` + `RUNPOD_ENDPOINT_ID` |
-| RunPod worker (Docker) | ✅ ready to deploy | User mid-flow on RunPod's web UI |
-| Per-pack provider router | ✅ real | `AI_ROUTING` env JSON |
-| `next.config.mjs` remote images | ✅ | fal.media + Wasabi + Bunny + B2 + Replicate + `S3_PUBLIC_URL` |
-| `/api/train` LoRA training | ❌ stub | Calls fake handler. `falProvider.trainLora()` exists but isn't wired into the route yet. |
-| `/api/verify` ID verification | ❌ stub | No Persona/Stripe Identity/Veriff calls yet |
-| `/api/billing/checkout` | ❌ stub | Returns fake URL. CCBill/Segpay/Epoch unwired. |
-| `/welcome` flow | ⚠️ UI-only | Selfie upload doesn't go anywhere; training progress is a setInterval. |
-| LoRA storage / presigner | ❌ stub | `mintLoraUrl()` in fal.ts and runpod.ts return env defaults only. Wasabi presigner snippet in worker README. |
-| Hive + Thorn Safer | ❌ stub | `postModerate()` returns `ok: true` always. **MUST wire before launch.** |
-| Database (Postgres) | ❌ none | Everything is localStorage right now |
-| Auth | ❌ none | Demo runs as "demo-user" |
-| Queue worker (BullMQ) | ❌ none | `/api/generate` awaits inline. Cold starts will time out the request. |
+| **fal.ai** | ✅ key in `.env.local`, smoke-tested | Auth confirmed (HTTP 401→403). **$0 balance** — fund at fal.ai/dashboard/billing before first real generation. |
+| **Wasabi** | ✅ bucket `ladida-prod` (us-east-1), root access keys in `.env.local`, smoke-tested (PUT/GET/HEAD/DELETE roundtrip works) | **Public reads disabled at account level** ("trial limitation"). RunPod-served images need either Wasabi support to enable, or presigned URLs everywhere. fal images use fal.media so unaffected. |
+| **Bunny CDN** | ✅ pull zone `ladida.b-cdn.net` configured against the Wasabi bucket | Will 403 until Wasabi public access is enabled. |
+| **Hugging Face** | ✅ fine-grained token in `.env.local`, gated-repo read scope | **Need to accept the FLUX.1-dev license** at huggingface.co/black-forest-labs/FLUX.1-dev before the RunPod worker can build. |
+| **RunPod** | ⚠ API key in `.env.local`, GitHub connected as `manicmerlin`, **endpoint not yet deployed**, **$0 balance** | Endpoint deploy needs balance + the FLUX license accepted. |
+| **Persona** | ❌ not signed up | `/api/verify` returns stub. Set `ID_VERIFY_PROVIDER=persona`, `PERSONA_API_KEY`, `PERSONA_TEMPLATE_ID`, `PERSONA_WEBHOOK_SECRET`. |
+| **Hive + Thorn** | ❌ not signed up | `postModerate()` returns ok if no keys; with `MODERATION_REQUIRED=1` it fails closed. **Must wire before launch.** |
+| **CCBill / NOWPayments / SegPay** | ❌ not signed up | `/api/billing/checkout` errors until keys exist. |
+| **Postgres** | ❌ none | Everything still in localStorage. |
+| **Redis (BullMQ)** | ❌ none | `/api/generate` runs inline; queue gracefully no-ops when `REDIS_URL` missing. |
 
-## Services user has signed up for
+## Recent session — what changed
 
-- fal.ai (LoRA training + Flux + Kling video)
-- RunPod (self-hosted GPU inference)
-- Hugging Face (Flux Dev access token)
-- Wasabi (S3-compatible adult-friendly storage)
-- Bunny.net (CDN in front of Wasabi)
-- Docker Hub
-- GitHub (already had; RunPod connector now authorized)
+This handoff was written after a multi-hour session that turned the entire stub pile into real wiring:
 
-API keys live **only** in `~/Miamidriver/.env.local` (gitignored) and in RunPod's web UI env-vars panel for the worker side. Never paste keys in chat.
-
-## Current blocker
-
-**fal.ai returns 401 "invalid key credentials"** when `/api/generate` runs.
-
-Pipeline reaches fal correctly — wiring is right, key auth is wrong. Three causes in priority order:
-
-1. **The original fal key was pasted in chat early on** (`f59d664f-3924-4a4a-9179-2c6629550e44:ababb98307c8d926d4b65bfc41759842`). fal's secret scanner auto-revokes leaked keys. User was told to rotate but may not have, or may have rotated and pasted the new value incorrectly.
-2. **Env var name mismatch.** fal docs say `FAL_KEY`; our scaffold originally said `FAL_API_KEY`. Latest commit (`4936912`) accepts either.
-3. **Format wrong.** Full key is `<key_id>:<key_secret>` (one colon, total length ~65). The adapter now validates that.
-
-User should:
-1. Go to fal.ai → API Keys → revoke any old keys → generate fresh one.
-2. Copy the **full** value with the colon.
-3. Open `~/Miamidriver/.env.local`, set `FAL_KEY=<full-value>` (no quotes, no whitespace).
-4. `Ctrl+C` the dev server and `npm run dev` again.
-5. Try Boudoir → Rose suite → Single → for the feed → Make the look ✦.
-
-The first generation will return a real photo from `fal.media` but won't look like the user — there's no LoRA trained yet. That's expected; first-real-output is just the smoke test.
-
-## Recent commits (most recent first)
-
-```
-4936912 Fix fal adapter: accept FAL_KEY (fal's canonical name) and validate format
-7c8edb2 Wire fal.ai for real, add per-pack provider router, harden Dockerfile
-98c44f8 Add self-hosted RunPod serverless worker + adapter
-f01743b Fix infinite render loop on /welcome
-52df2a7 Add Set mode — paired feed + platform generations sold as a unit
-25b616f Rewrite landing copy for the actual girl, not the engineer
-9e95126 Bring up La Di Da MVP — vertical AI atelier for verified creators
-```
+1. **Code (all merged on this branch):**
+   - Real S3 presigner (`src/lib/s3.ts`) consumed by both fal + runpod adapters
+   - Real Hive + Thorn calls (`src/lib/moderation.ts`)
+   - Real `/api/train` 3-step pipeline (presign → trainLora → poll → mirror `.safetensors`)
+   - Real `/api/verify` (Persona + Veriff) with HMAC-verified webhook
+   - Real `/api/billing/checkout` (CCBill FlexForms + SegPay + NOWPayments) with allowlist + HMAC-SHA512 webhook
+   - Optional BullMQ queue + standalone `npm run worker` script
+   - `.env.example` updated with all new vars
+2. **Live services configured:**
+   - fal.ai key rotated (old one was malformed; first segment of UUID was missing) — auth verified
+   - Wasabi bucket created + root access keys stored + roundtrip tested
+   - HF fine-grained token created with gated-repo read scope
+   - Bunny CDN pull zone created against Wasabi bucket
+3. **Build/typecheck:** clean throughout. 21 routes, 8 dynamic API routes.
 
 ## Where to pick up — work queue, in priority order
 
-1. **Unblock fal.ai 401** (above). Confirm a real Flux generation lands in `/vault`.
-2. **Finish RunPod endpoint deployment** — user is mid-flow on RunPod's web UI; `infra/runpod-worker/README.md` is the guide. After deploy, paste `RUNPOD_API_KEY` and `RUNPOD_ENDPOINT_ID` into `.env.local`. Set `AI_ROUTING='{"graded":"runpod","video":"fal"}'` so SFW work goes to fal and graded work goes to self-hosted.
-3. **Wire real `/api/train`** — `falProvider.trainLora()` exists but the route is still a stub. Take 20–30 selfies → zip → upload to Wasabi → presign → call `trainLora({ imagesZipUrl, triggerWord, steps })` → poll for completion → store `.safetensors` URL on the user record.
-4. **Wire LoRA storage + presigner** — implement `mintLoraUrl(userId, modelId)` in both fal.ts and runpod.ts using `@aws-sdk/client-s3` against the Wasabi bucket. Code snippet in worker README §5.
-5. **Wire real `/api/verify`** — Persona is the typical pick for the adult vertical. Hosted flow URL → verification webhook → flip `idVerified` server-side.
-6. **Wire post-output moderation** — Hive (NSFW classification, used for tagging not blocking) + Thorn Safer (CSAM, used for hard blocking). Fail closed on either. Inside `postModerate()` of each adapter.
-7. **Pick a billing processor** — CCBill is industry default. Wire `/api/billing/checkout`. Add NOWPayments crypto fallback.
-8. **Move generation off the request thread** — BullMQ on Redis + RunPod webhooks. Right now /api/generate awaits inline; cold starts can hit the 60–120s edge runtime cap.
-9. **Replace localStorage with Postgres + real auth** — Supabase self-hosted is the easiest adult-friendly path. Add Auth.js for sessions.
+User-action items (I cannot do these — account creation, funding, license acceptance):
+
+1. **Top up fal balance** at fal.ai/dashboard/billing. ~$10 buys plenty of test generations. After that, every `/api/generate` call should produce a real image.
+2. **Accept FLUX.1-dev license** at https://huggingface.co/black-forest-labs/FLUX.1-dev — required for the RunPod worker build to download the model.
+3. **Top up RunPod balance** at console.runpod.io/billing if you want self-hosted graded inference. ~$10–25 to do an end-to-end test.
+4. **Sign up Persona** at withpersona.com. Create an inquiry template (KYC/Government ID), grab the `itmpl_…` id, and a webhook secret. Then in `.env.local`: `ID_VERIFY_PROVIDER=persona`, fill `PERSONA_API_KEY`, `PERSONA_TEMPLATE_ID`, `PERSONA_WEBHOOK_SECRET`.
+5. **Sign up Hive + Thorn Safer.** Both need vetting (Thorn especially is application-only). For dev, you can leave keys empty with `MODERATION_REQUIRED=0` and post-mod is a no-op.
+6. **Pick a billing processor.** CCBill is the industry default for adult subscriptions. Once approved, paste `CCBILL_ACCOUNT`, `CCBILL_SUBACCOUNT`, `CCBILL_FLEX_FORM_ID`, `CCBILL_ALLOWED_IPS`. NOWPayments is the easiest crypto fallback (no AML interview needed).
+7. **Wasabi public reads.** Either email Wasabi support to enable on this trial, or upgrade past trial. Until done, RunPod-served images would 403 through the CDN — fal images are fine since they use fal.media.
+
+Code-level follow-ups (deferable):
+
+8. **Postgres + Auth.** Replace localStorage. Supabase self-hosted is the easiest adult-friendly path.
+9. **Bucket-scoped Wasabi sub-user.** Today the access keys in `.env.local` are root. Create a sub-user with a policy scoped to `ladida-prod` only.
+10. **Move generation off the request thread for prod.** Set `REDIS_URL`, run `npm run worker`. Already wired.
+11. **EXIF baking on returned assets.** `aiTagged: true` is set on every vault item; the actual EXIF text-chunk write should happen server-side before the asset is finalized.
 
 ## File map for orientation
 
@@ -149,43 +129,52 @@ f01743b Fix infinite render loop on /welcome
 src/
   app/
     api/
-      generate/route.ts        ← provider routing + pre/post-mod orchestration
-      train/route.ts           ← STUB — wire to falProvider.trainLora()
-      verify/route.ts          ← STUB — wire to Persona / Veriff
-      billing/checkout/route.ts ← STUB — wire to CCBill
-      moderation/incident/route.ts ← STUB — wire to Hive + Thorn
-    welcome/page.tsx           ← onboarding flow (training is fake setInterval)
+      generate/route.ts            ← provider routing + pre/post-mod orchestration + BullMQ enqueue
+      generate/status/route.ts     ← poll a queued job
+      train/route.ts               ← REAL — 3-step pipeline (?step=presign|start|status)
+      verify/route.ts              ← REAL — Persona + Veriff hosted flow
+      verify/webhook/route.ts      ← REAL — HMAC-verified Persona webhook
+      billing/checkout/route.ts    ← REAL — CCBill / SegPay / NOWPayments
+      billing/webhook/route.ts     ← REAL — CCBill background-post + NOWPayments IPN
+      moderation/incident/route.ts ← logs-only — wire to DB later
+    welcome/page.tsx               ← onboarding flow (training is fake setInterval; wire to /api/train next)
     atelier/page.tsx
-    atelier/generate/[pack]/page.tsx ← Single / Set mode UI
+    atelier/generate/[pack]/page.tsx
     vault/page.tsx
     account/page.tsx
     salon/page.tsx
-    trust/page.tsx             ← engineering-voice trust page
+    trust/page.tsx
     legal/{disclosure,2257,privacy}/page.tsx
-    page.tsx                   ← marketing landing
+    page.tsx
     layout.tsx
-    globals.css                ← brand tokens, silk/marble overlays, polaroid develop
+    globals.css
   lib/
-    packs.ts                   ← pack catalog (single source of truth)
-    state.tsx                  ← client store, set() accepts patch | functional
+    packs.ts                       ← pack catalog
+    state.tsx                      ← client store
     cn.ts
+    s3.ts                          ← REAL — Wasabi presigner + key helpers
+    moderation.ts                  ← REAL — Hive + Thorn parallel, fail-closed
+    queue.ts                       ← REAL — optional BullMQ; no-ops without REDIS_URL
     ai/
-      types.ts                 ← GenerationProvider interface
-      router.ts                ← pickProvider() — per-pack/grade
-      index.ts                 ← re-exports
+      types.ts                     ← GenerationProvider interface
+      router.ts                    ← pickProvider() — per-pack/grade
+      index.ts                     ← re-exports
       providers/
-        stub.ts                ← gradient placeholders
-        fal.ts                 ← REAL — Flux + Kling + trainLora
-        runpod.ts              ← REAL — submit + poll
-        replicate.ts           ← placeholder
+        stub.ts
+        fal.ts                     ← REAL — Flux + Kling + trainLora; uses S3 presigner for LoRAs
+        runpod.ts                  ← REAL — submit + poll; uses S3 presigner for LoRAs
+        replicate.ts               ← placeholder
   components/
     TopBar.tsx, Footer.tsx, SparkleField.tsx, icons.tsx
 infra/
   runpod-worker/
     Dockerfile, handler.py, download_models.py, requirements.txt, README.md
-.env.example                   ← template (NEVER commit real secrets)
-next.config.mjs                ← remotePatterns for fal.media + Wasabi + Bunny + ...
-tailwind.config.ts             ← blush / rose / hot-pink / champagne / gold palette
+scripts/
+  worker.ts                        ← REAL — `npm run worker`, BullMQ standalone consumer
+.env.example                       ← template — every new var documented
+.env.local                         ← live secrets, gitignored
+next.config.mjs                    ← remotePatterns include fal.media + Wasabi + Bunny + B2
+tailwind.config.ts                 ← blush / rose / hot-pink / champagne / gold palette
 ```
 
 ## Brand & voice non-negotiables
