@@ -1,0 +1,36 @@
+{
+  "name": "la-di-da",
+  "version": "0.1.0",
+  "private": true,
+  "description": "La Di Da — a vertical AI photo & video atelier for verified adult creators. MVP scaffold.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "worker": "tsx scripts/worker.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1039.0",
+    "@aws-sdk/s3-request-presigner": "^3.1039.0",
+    "bullmq": "^5.76.4",
+    "clsx": "^2.1.1",
+    "framer-motion": "^11.11.17",
+    "ioredis": "^5.10.1",
+    "next": "^15.1.6",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwind-merge": "^2.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.14",
+    "tsx": "^4.21.0",
+    "typescript": "^5.6.3"
+  }
+}
