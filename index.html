@@ -2,409 +2,788 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Miami Driver — a Flappy-style South Florida traffic game</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#0b1220" />
+<title>PocketScan — document scanner → PDF</title>
 <style>
-  :root { color-scheme: dark; }
-  html, body { margin: 0; padding: 0; height: 100%; background: #0b1220; overflow: hidden;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #fff; }
-  #wrap { position: fixed; inset: 0; display: grid; place-items: center; }
-  canvas { background: #2a2a2a; image-rendering: pixelated; box-shadow: 0 20px 60px rgba(0,0,0,.5);
-    max-width: 100vw; max-height: 100vh; touch-action: none; }
-  #hint { position: fixed; bottom: 10px; left: 0; right: 0; text-align: center;
-    font-size: 12px; opacity: .55; letter-spacing: .04em; pointer-events: none; }
+  :root{
+    --bg:#0b1220; --panel:#121a2e; --panel2:#18233d; --line:#26344f;
+    --txt:#eaf0ff; --mut:#8da3c8; --acc:#4f9dff; --acc2:#2bd4a7; --danger:#ff5d6c;
+    color-scheme: dark;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--txt);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    overscroll-behavior:none}
+  body{display:flex;flex-direction:column;min-height:100dvh}
+  header{display:flex;align-items:center;gap:10px;padding:14px 16px;
+    padding-top:max(14px,env(safe-area-inset-top));
+    background:linear-gradient(180deg,#101a30,#0b1220);border-bottom:1px solid var(--line);
+    position:sticky;top:0;z-index:5}
+  header h1{font-size:18px;margin:0;font-weight:700;letter-spacing:.02em;flex:1}
+  header .logo{width:26px;height:26px;border-radius:7px;
+    background:linear-gradient(135deg,var(--acc),var(--acc2));display:grid;place-items:center;
+    font-size:15px}
+  main{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
+  footer{padding:12px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom));
+    background:#0c1424;border-top:1px solid var(--line);display:flex;gap:10px}
+  button{font:inherit;color:var(--txt);background:var(--panel2);border:1px solid var(--line);
+    border-radius:11px;padding:12px 14px;cursor:pointer;transition:.12s;line-height:1}
+  button:active{transform:translateY(1px)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .btn-primary{background:linear-gradient(135deg,var(--acc),#3b7fe0);border-color:#3b7fe0;
+    font-weight:600;flex:1}
+  .btn-accent{background:linear-gradient(135deg,var(--acc2),#1fae89);border-color:#1fae89;
+    color:#062018;font-weight:700;flex:1}
+  .btn-ghost{background:transparent}
+  .btn-danger{color:#fff;background:transparent;border-color:#5a2230;color:var(--danger)}
+  .row{display:flex;gap:10px}
+  .grow{flex:1}
+
+  /* ---------- library / page grid ---------- */
+  .empty{display:grid;place-items:center;text-align:center;color:var(--mut);
+    height:100%;padding:30px;gap:14px}
+  .empty .big{font-size:54px;filter:grayscale(.2)}
+  .empty h2{color:var(--txt);margin:0;font-size:20px}
+  .empty p{margin:0;max-width:340px;line-height:1.5}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:14px;padding:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    overflow:hidden;display:flex;flex-direction:column}
+  .card.sel{outline:2px solid var(--acc);outline-offset:-1px}
+  .thumb{aspect-ratio:3/4;background:#fff;display:grid;place-items:center;overflow:hidden}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .card .meta{display:flex;align-items:center;gap:6px;padding:8px 10px;font-size:12px;
+    color:var(--mut)}
+  .card .meta b{color:var(--txt);font-weight:600}
+  .card .meta .sp{flex:1}
+  .iconbtn{padding:7px;border-radius:9px;background:var(--panel2);font-size:13px}
+
+  /* ---------- editor ---------- */
+  .editor{display:flex;flex-direction:column;height:100%}
+  .stage{flex:1;position:relative;background:
+      repeating-conic-gradient(#0e1730 0 25%,#0b1220 0 50%) 50%/22px 22px;
+    overflow:hidden;touch-action:none}
+  #editCanvas,#overlay{position:absolute;left:50%;top:50%;
+    transform:translate(-50%,-50%);max-width:100%;max-height:100%}
+  #overlay{touch-action:none}
+  .toolbar{display:flex;gap:8px;padding:12px 14px;overflow-x:auto;background:#0c1424;
+    border-top:1px solid var(--line)}
+  .toolbar button{white-space:nowrap;font-size:13px;padding:10px 13px}
+  .chip{display:flex;gap:8px;padding:10px 14px;background:#0c1424;overflow-x:auto}
+  .chip button{font-size:13px;padding:9px 14px;border-radius:999px;background:var(--panel)}
+  .chip button.on{background:linear-gradient(135deg,var(--acc),#3b7fe0);
+    border-color:#3b7fe0;font-weight:600}
+  .hint{font-size:12px;color:var(--mut);text-align:center;padding:6px 14px 0}
+
+  /* ---------- modal ---------- */
+  .scrim{position:fixed;inset:0;background:rgba(4,8,18,.7);display:none;
+    place-items:center;z-index:20;padding:20px}
+  .scrim.on{display:grid}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    padding:20px;width:min(420px,100%);display:flex;flex-direction:column;gap:14px}
+  .modal h3{margin:0;font-size:17px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{font-size:13px;color:var(--mut)}
+  .field input,.field select{font:inherit;color:var(--txt);background:var(--panel2);
+    border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+  .seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .seg button{flex:1;border:0;border-radius:0;background:var(--panel2)}
+  .seg button.on{background:var(--acc);color:#fff}
+  .busy{position:fixed;inset:0;background:rgba(4,8,18,.6);display:none;
+    place-items:center;z-index:40;flex-direction:column;gap:14px}
+  .busy.on{display:grid}
+  .spin{width:42px;height:42px;border-radius:50%;border:4px solid #2a3a59;
+    border-top-color:var(--acc);animation:sp 1s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);
+    background:#1c2942;border:1px solid var(--line);padding:10px 16px;border-radius:999px;
+    font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:50}
+  .toast.on{opacity:1}
 </style>
 </head>
 <body>
-<div id="wrap"><canvas id="game" width="480" height="720"></canvas></div>
-<div id="hint">SPACE / click / tap to hop &middot; P to pause</div>
+
+<header>
+  <div class="logo">▦</div>
+  <h1 id="title">PocketScan</h1>
+  <button id="hdrBtn" class="btn-ghost" style="display:none">Done</button>
+</header>
+
+<main id="main">
+  <!-- LIBRARY VIEW -->
+  <section id="libView" style="height:100%">
+    <div id="emptyState" class="empty">
+      <div class="big">📄</div>
+      <h2>No pages yet</h2>
+      <p>Snap or import a document. PocketScan straightens it, cleans it up,
+         and builds a multi‑page PDF — all on your device, nothing uploaded.</p>
+      <button class="btn-primary" style="flex:0 0 auto;padding:13px 22px"
+        onclick="pickFiles()">+ Add pages</button>
+    </div>
+    <div id="grid" class="grid" style="display:none"></div>
+  </section>
+
+  <!-- EDITOR VIEW -->
+  <section id="editView" class="editor" style="display:none">
+    <div class="stage" id="stage">
+      <canvas id="editCanvas"></canvas>
+      <canvas id="overlay"></canvas>
+    </div>
+    <div class="hint" id="editHint">Drag the corners to match the document edges</div>
+    <div class="chip" id="filterChips">
+      <button data-f="bw"     class="on">⬛ B&amp;W</button>
+      <button data-f="gray">◧ Grayscale</button>
+      <button data-f="color">🎨 Color</button>
+      <button data-f="orig">🖼 Original</button>
+    </div>
+    <div class="toolbar">
+      <button onclick="autoDetect()">⤢ Auto‑detect</button>
+      <button onclick="resetCorners()">⤡ Full page</button>
+      <button onclick="rotateEdit(-90)">↺ Left</button>
+      <button onclick="rotateEdit(90)">↻ Right</button>
+      <button class="btn-danger" onclick="cancelEdit()">Discard</button>
+    </div>
+  </section>
+</main>
+
+<footer id="libFooter">
+  <button class="btn-ghost" onclick="pickFiles()">+ Add pages</button>
+  <button id="exportBtn" class="btn-accent" onclick="openExport()" disabled>Export PDF</button>
+</footer>
+<footer id="editFooter" style="display:none">
+  <button class="btn-ghost grow" onclick="cancelEdit()">Cancel</button>
+  <button class="btn-primary" onclick="applyEdit()">Apply page ▸</button>
+</footer>
+
+<input id="fileInput" type="file" accept="image/*" capture="environment" multiple class="sr">
+
+<div class="scrim" id="exportScrim">
+  <div class="modal">
+    <h3>Export PDF</h3>
+    <div class="field">
+      <label for="pdfName">File name</label>
+      <input id="pdfName" value="scan" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Page size</label>
+      <div class="seg" id="pageSizeSeg">
+        <button data-s="auto" class="on">Fit image</button>
+        <button data-s="a4">A4</button>
+        <button data-s="letter">Letter</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="jpgQ">Quality / file size</label>
+      <select id="jpgQ">
+        <option value="0.92">High (larger)</option>
+        <option value="0.82" selected>Balanced</option>
+        <option value="0.68">Small (smaller)</option>
+      </select>
+    </div>
+    <div class="row">
+      <button class="btn-ghost grow" onclick="closeExport()">Cancel</button>
+      <button class="btn-accent" onclick="doExport()">Download PDF</button>
+    </div>
+  </div>
+</div>
+
+<div class="busy" id="busy"><div class="spin"></div><div id="busyMsg">Working…</div></div>
+<div class="toast" id="toast"></div>
+
 <script>
-(() => {
-  const cvs = document.getElementById('game');
-  const ctx = cvs.getContext('2d');
-  const W = cvs.width, H = cvs.height;
+"use strict";
+/* =======================================================================
+   PocketScan — a self-contained, offline document scanner.
+   No network, no libraries: capture → detect edges → perspective crop →
+   enhance (B&W / grayscale / color) → assemble a multi-page PDF.
+   ======================================================================= */
 
-  // ----- game state -----
-  const STATE = { READY: 0, PLAY: 1, DEAD: 2, PAUSE: 3 };
-  let state = STATE.READY;
-  let score = 0;
-  let best = +(localStorage.getItem('miamidriver.best') || 0);
-  let tick = 0;
+const $ = id => document.getElementById(id);
 
-  // player = car on the road. Flappy mechanics: gravity + hop.
-  const car = {
-    x: 110, y: H * 0.5, vy: 0,
-    w: 56, h: 34,
-    rot: 0,
-  };
+/* ---------- app state ---------- */
+const pages = [];          // { jpeg:Blob, thumb:dataURL, w, h }
+let selectedCardId = null;
+let cardSeq = 0;
 
-  const GRAVITY = 0.38;
-  const HOP = -7.2;
-  const SCROLL = 3.0;   // base scroll speed
-  const ROAD_TOP = 90;
-  const ROAD_BOTTOM = H - 60;
+/* editor working state */
+let edit = null;           // { srcCanvas, corners:[{x,y}x4], filter, dragIdx }
+let importQueue = [];       // remaining File objects to process
 
-  // Obstacle catalog — each uses an emoji sprite so we don't need assets.
-  // gap = vertical hole the player must fit through (like flappy's pipes).
-  // pair = two sprites stacked leaving a gap; solo = one sprite at a y-pos.
-  const OBSTACLES = [
-    { id:'burning',   label:'Burning Car',        emoji:'\uD83D\uDE97\uD83D\uDD25', kind:'pair', size:72, tag:'random burning car' },
-    { id:'ducks',     label:'Duck Family',        emoji:'\uD83E\uDD86\uD83D\uDC23\uD83D\uDC23', kind:'solo', size:60, tag:'duck family crossing' },
-    { id:'detour',    label:'ROAD CLOSED',        emoji:'\uD83D\uDEA7', kind:'pair', size:70, tag:'detour — road closed' },
-    { id:'cones',     label:'Construction',       emoji:'\uD83D\uDEA7\uD83E\uDDF1', kind:'pair', size:66, tag:'construction zone' },
-    { id:'atv',       label:'ATV Takeover',       emoji:'\uD83C\uDFCD\uFE0F\uD83D\uDEF5', kind:'solo', size:58, tag:'ATV & dirtbike raid' },
-    { id:'merger',    label:'No-Signal Merger',   emoji:'\uD83D\uDE99', kind:'solo', size:60, tag:'merging without turn signal' },
-    { id:'gator',     label:'Gator Crossing',     emoji:'\uD83D\uDC0A', kind:'solo', size:72, tag:'gator on the road' },
-    { id:'bso',       label:'BSO Speed Trap',     emoji:'\uD83D\uDE93', kind:'pair', size:70, tag:'BSO in the median' },
-  ];
+/* ---------- small helpers ---------- */
+function toast(msg){
+  const t=$('toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('on'),1900);
+}
+function busy(on,msg){ $('busyMsg').textContent=msg||'Working…';
+  $('busy').classList.toggle('on',!!on); }
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 
-  /** @type {{x:number,type:object,y:number,gap:number,passed:boolean,flash:number}[]} */
-  let obstacles = [];
-  let lastSpawnX = W + 200;
-  let shake = 0;
-  let toast = null; // {text, t}
-
-  function setToast(text) { toast = { text, t: 60 }; }
-
-  function reset() {
-    car.x = 110; car.y = H * 0.5; car.vy = 0; car.rot = 0;
-    obstacles = []; score = 0; tick = 0; lastSpawnX = W + 180; shake = 0;
-    toast = null;
-  }
-
-  function hop() {
-    if (state === STATE.READY) { state = STATE.PLAY; }
-    if (state === STATE.DEAD)  { reset(); state = STATE.PLAY; return; }
-    if (state === STATE.PAUSE) { state = STATE.PLAY; return; }
-    car.vy = HOP;
-  }
-
-  function pause() {
-    if (state === STATE.PLAY) state = STATE.PAUSE;
-    else if (state === STATE.PAUSE) state = STATE.PLAY;
-  }
-
-  window.addEventListener('keydown', (e) => {
-    if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); hop(); }
-    else if (e.key === 'p' || e.key === 'P') { pause(); }
+function loadImage(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{ URL.revokeObjectURL(url); res(img); };
+    img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error('bad image')); };
+    img.src=url;
   });
-  cvs.addEventListener('mousedown', (e) => { e.preventDefault(); hop(); });
-  cvs.addEventListener('touchstart', (e) => { e.preventDefault(); hop(); }, { passive: false });
+}
+function canvasToBlob(cv,type,q){
+  return new Promise(r=>cv.toBlob(r,type,q));
+}
 
-  // ----- spawning -----
-  function difficulty() {
-    // ramps up with score
-    return {
-      speed: SCROLL + Math.min(3.5, score * 0.06),
-      gap:   Math.max(150, 230 - score * 2.2),
-      gapJitter: 40,
-      spacing: Math.max(210, 300 - score * 1.5),
+/* =======================================================================
+   1. IMPORT
+   ======================================================================= */
+function pickFiles(){ $('fileInput').value=''; $('fileInput').click(); }
+
+$('fileInput').addEventListener('change', async e=>{
+  const files=[...e.target.files].filter(f=>f.type.startsWith('image/'));
+  if(!files.length) return;
+  importQueue=files;
+  await openNextFromQueue();
+});
+
+async function openNextFromQueue(){
+  if(!importQueue.length) return;
+  const file=importQueue.shift();
+  busy(true,'Loading image…');
+  try{
+    const img=await loadImage(file);
+    // Downscale very large photos for snappy editing; final warp re-renders crisp.
+    const MAX=1600;
+    let w=img.naturalWidth, h=img.naturalHeight;
+    const sc=Math.min(1,MAX/Math.max(w,h));
+    w=Math.round(w*sc); h=Math.round(h*sc);
+    const c=document.createElement('canvas'); c.width=w; c.height=h;
+    c.getContext('2d').drawImage(img,0,0,w,h);
+    startEditor(c);
+  }catch(err){ toast('Could not load that image'); }
+  finally{ busy(false); }
+}
+
+/* =======================================================================
+   2. EDITOR — corner crop overlay
+   ======================================================================= */
+const editCanvas=$('editCanvas'), overlay=$('overlay');
+
+function startEditor(srcCanvas){
+  edit={ srcCanvas, filter:'bw', corners:null, dragIdx:-1 };
+  showView('edit');
+  fitEditorCanvas();
+  edit.corners=defaultCorners();
+  autoDetect(true);            // best-effort, silent
+  setFilter('bw');
+  drawOverlay();
+}
+
+function fitEditorCanvas(){
+  const s=edit.srcCanvas;
+  editCanvas.width=s.width; editCanvas.height=s.height;
+  overlay.width=s.width;    overlay.height=s.height;
+  // size on screen: contain within stage
+  const st=$('stage').getBoundingClientRect();
+  const sc=Math.min(st.width/s.width, st.height/s.height)*0.96;
+  for(const cv of [editCanvas,overlay]){
+    cv.style.width=(s.width*sc)+'px';
+    cv.style.height=(s.height*sc)+'px';
+  }
+}
+function defaultCorners(){
+  const w=edit.srcCanvas.width, h=edit.srcCanvas.height, m=Math.min(w,h)*0.04;
+  return [ {x:m,y:m},{x:w-m,y:m},{x:w-m,y:h-m},{x:m,y:h-m} ]; // tl tr br bl
+}
+function resetCorners(){ edit.corners=defaultCorners(); renderEditPreview(); drawOverlay(); }
+
+/* ---- auto edge detection: Otsu foreground + extreme-point quad ---- */
+function autoDetect(silent){
+  const src=edit.srcCanvas;
+  const DW=Math.min(360,src.width);
+  const DH=Math.round(src.height*DW/src.width);
+  const tmp=document.createElement('canvas'); tmp.width=DW; tmp.height=DH;
+  const tctx=tmp.getContext('2d'); tctx.drawImage(src,0,0,DW,DH);
+  const d=tctx.getImageData(0,0,DW,DH).data;
+
+  const gray=new Uint8Array(DW*DH), hist=new Uint32Array(256);
+  for(let i=0,p=0;i<gray.length;i++,p+=4){
+    const g=(d[p]*0.299+d[p+1]*0.587+d[p+2]*0.114)|0;
+    gray[i]=g; hist[g]++;
+  }
+  // Otsu threshold
+  const total=DW*DH; let sum=0; for(let i=0;i<256;i++) sum+=i*hist[i];
+  let sumB=0,wB=0,best=0,thr=128;
+  for(let i=0;i<256;i++){
+    wB+=hist[i]; if(!wB) continue;
+    const wF=total-wB; if(!wF) break;
+    sumB+=i*hist[i];
+    const mB=sumB/wB, mF=(sum-sumB)/wF;
+    const v=wB*wF*(mB-mF)*(mB-mF);
+    if(v>best){ best=v; thr=i; }
+  }
+  // page assumed brighter than background; pick the brighter side as foreground
+  let brightCnt=0; for(let i=0;i<gray.length;i++) if(gray[i]>thr) brightCnt++;
+  const pageIsBright = brightCnt < total*0.85;   // sanity: not whole image
+  // extreme-point quad over the foreground mask
+  let minSum=1e9,maxSum=-1e9,minDif=1e9,maxDif=-1e9;
+  let tl,tr,br,bl,found=0;
+  for(let y=0;y<DH;y++) for(let x=0;x<DW;x++){
+    const fg = pageIsBright ? gray[y*DW+x]>thr : gray[y*DW+x]<=thr;
+    if(!fg) continue; found++;
+    const s=x+y, df=x-y;
+    if(s<minSum){minSum=s;tl={x,y};}
+    if(s>maxSum){maxSum=s;br={x,y};}
+    if(df<minDif){minDif=df;bl={x,y};}
+    if(df>maxDif){maxDif=df;tr={x,y};}
+  }
+  const ratio=found/total;
+  if(found && ratio>0.12 && ratio<0.985 && tl&&tr&&br&&bl){
+    const sx=src.width/DW, sy=src.height/DH;
+    const q=[tl,tr,br,bl].map(p=>({x:p.x*sx,y:p.y*sy}));
+    // reject near-degenerate quads
+    const area=Math.abs((q[0].x*q[1].y-q[1].x*q[0].y)+(q[1].x*q[2].y-q[2].x*q[1].y)
+      +(q[2].x*q[3].y-q[3].x*q[2].y)+(q[3].x*q[0].y-q[0].x*q[3].y))/2;
+    if(area > src.width*src.height*0.10){ edit.corners=q;
+      if(!silent) toast('Edges detected'); renderEditPreview(); drawOverlay(); return; }
+  }
+  if(!silent) toast('Couldn’t auto-detect — drag the corners');
+}
+
+/* ---- live preview of the cropped+filtered result inside the editor ---- */
+function renderEditPreview(){
+  // editor shows the ORIGINAL with overlay; preview of result is on Apply.
+  // (Keeping the original visible makes corner placement accurate.)
+  const ctx=editCanvas.getContext('2d');
+  ctx.drawImage(edit.srcCanvas,0,0);
+}
+
+/* ---- overlay (dim outside + corner handles + edges) ---- */
+function drawOverlay(){
+  const o=overlay.getContext('2d'), W=overlay.width, H=overlay.height;
+  o.clearRect(0,0,W,H);
+  const C=edit.corners;
+  o.save();
+  o.fillStyle='rgba(6,10,22,.55)';
+  o.fillRect(0,0,W,H);
+  o.globalCompositeOperation='destination-out';
+  o.beginPath(); o.moveTo(C[0].x,C[0].y);
+  for(let i=1;i<4;i++) o.lineTo(C[i].x,C[i].y);
+  o.closePath(); o.fill();
+  o.restore();
+  o.strokeStyle='#4f9dff'; o.lineWidth=Math.max(2,W*0.004);
+  o.beginPath(); o.moveTo(C[0].x,C[0].y);
+  for(let i=1;i<4;i++) o.lineTo(C[i].x,C[i].y);
+  o.closePath(); o.stroke();
+  const r=Math.max(11,W*0.022);
+  for(const p of C){
+    o.beginPath(); o.arc(p.x,p.y,r,0,Math.PI*2);
+    o.fillStyle='rgba(79,157,255,.25)'; o.fill();
+    o.lineWidth=Math.max(2,W*0.004); o.strokeStyle='#cfe2ff'; o.stroke();
+    o.beginPath(); o.arc(p.x,p.y,r*0.32,0,Math.PI*2);
+    o.fillStyle='#cfe2ff'; o.fill();
+  }
+}
+
+/* ---- pointer handling for corner dragging ---- */
+function evtToCanvas(e){
+  const r=overlay.getBoundingClientRect();
+  const x=(e.clientX-r.left)*overlay.width/r.width;
+  const y=(e.clientY-r.top)*overlay.height/r.height;
+  return {x,y};
+}
+overlay.addEventListener('pointerdown',e=>{
+  overlay.setPointerCapture(e.pointerId);
+  const p=evtToCanvas(e); let bi=-1,bd=1e9;
+  edit.corners.forEach((c,i)=>{ const d=Math.hypot(c.x-p.x,c.y-p.y);
+    if(d<bd){bd=d;bi=i;} });
+  const hit=Math.max(26,overlay.width*0.05);
+  edit.dragIdx = bd<hit ? bi : -1;
+});
+overlay.addEventListener('pointermove',e=>{
+  if(!edit||edit.dragIdx<0) return;
+  const p=evtToCanvas(e);
+  edit.corners[edit.dragIdx]={ x:clamp(p.x,0,overlay.width),
+                               y:clamp(p.y,0,overlay.height) };
+  drawOverlay();
+});
+function endDrag(){ if(edit) edit.dragIdx=-1; }
+overlay.addEventListener('pointerup',endDrag);
+overlay.addEventListener('pointercancel',endDrag);
+
+function rotateEdit(deg){
+  const s=edit.srcCanvas, c=document.createElement('canvas');
+  const rad=deg*Math.PI/180;
+  if(Math.abs(deg)===90){ c.width=s.height; c.height=s.width; }
+  else { c.width=s.width; c.height=s.height; }
+  const x=c.getContext('2d');
+  x.translate(c.width/2,c.height/2); x.rotate(rad);
+  x.drawImage(s,-s.width/2,-s.height/2);
+  edit.srcCanvas=c; fitEditorCanvas();
+  edit.corners=defaultCorners(); autoDetect(true);
+  renderEditPreview(); drawOverlay();
+}
+
+/* ---- filter chips ---- */
+$('filterChips').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return; setFilter(b.dataset.f);
+});
+function setFilter(f){
+  edit.filter=f;
+  [...$('filterChips').children].forEach(b=>
+    b.classList.toggle('on',b.dataset.f===f));
+}
+
+/* =======================================================================
+   3. PERSPECTIVE WARP + IMAGE ENHANCEMENT
+   ======================================================================= */
+
+// Solve 8 unknowns: maps src(4) -> dst(4). Returns [a,b,c,d,e,f,g,h].
+function perspectiveCoeffs(src,dst){
+  const A=[],B=[];
+  for(let i=0;i<4;i++){
+    const {x,y}=src[i], {x:X,y:Y}=dst[i];
+    A.push([x,y,1,0,0,0,-x*X,-y*X]); B.push(X);
+    A.push([0,0,0,x,y,1,-x*Y,-y*Y]); B.push(Y);
+  }
+  // Gaussian elimination (8x8)
+  for(let col=0;col<8;col++){
+    let piv=col;
+    for(let r=col+1;r<8;r++)
+      if(Math.abs(A[r][col])>Math.abs(A[piv][col])) piv=r;
+    [A[col],A[piv]]=[A[piv],A[col]]; [B[col],B[piv]]=[B[piv],B[col]];
+    const pv=A[col][col]||1e-12;
+    for(let r=0;r<8;r++){
+      if(r===col) continue;
+      const k=A[r][col]/pv;
+      for(let c=col;c<8;c++) A[r][c]-=k*A[col][c];
+      B[r]-=k*B[col];
+    }
+  }
+  const h=new Array(8);
+  for(let i=0;i<8;i++) h[i]=B[i]/(A[i][i]||1e-12);
+  return h;
+}
+
+// Warp the quad in srcCanvas to an upright rectangle.
+function warpToRect(srcCanvas,corners){
+  const [tl,tr,br,bl]=corners;
+  const wTop=Math.hypot(tr.x-tl.x,tr.y-tl.y);
+  const wBot=Math.hypot(br.x-bl.x,br.y-bl.y);
+  const hL =Math.hypot(bl.x-tl.x,bl.y-tl.y);
+  const hR =Math.hypot(br.x-tr.x,br.y-tr.y);
+  let W=Math.round(Math.max(wTop,wBot)), H=Math.round(Math.max(hL,hR));
+  const MAX=2200, sc=Math.min(1,MAX/Math.max(W,H));
+  W=Math.max(8,Math.round(W*sc)); H=Math.max(8,Math.round(H*sc));
+
+  // transform dst-rect -> src-quad, so we can pull-sample
+  const co=perspectiveCoeffs(
+    [{x:0,y:0},{x:W,y:0},{x:W,y:H},{x:0,y:H}],
+    [tl,tr,br,bl]);
+  const [a,b,c,d,e,f,g,hh]=co;
+
+  const sctx=srcCanvas.getContext('2d');
+  const S=sctx.getImageData(0,0,srcCanvas.width,srcCanvas.height).data;
+  const sw=srcCanvas.width, shh=srcCanvas.height;
+  const out=document.createElement('canvas'); out.width=W; out.height=H;
+  const oimg=out.getContext('2d').createImageData(W,H);
+  const O=oimg.data;
+
+  for(let y=0;y<H;y++){
+    for(let x=0;x<W;x++){
+      const den=g*x+hh*y+1;
+      const sx=(a*x+b*y+c)/den, sy=(d*x+e*y+f)/den;
+      const oi=(y*W+x)*4;
+      if(sx<0||sy<0||sx>=sw-1||shh-1<=sy){
+        O[oi]=O[oi+1]=O[oi+2]=255; O[oi+3]=255; continue;
+      }
+      const x0=sx|0, y0=sy|0, fx=sx-x0, fy=sy-y0;
+      const i00=(y0*sw+x0)*4, i10=i00+4, i01=i00+sw*4, i11=i01+4;
+      for(let ch=0;ch<3;ch++){
+        const v0=S[i00+ch]+(S[i10+ch]-S[i00+ch])*fx;
+        const v1=S[i01+ch]+(S[i11+ch]-S[i01+ch])*fx;
+        O[oi+ch]=v0+(v1-v0)*fy;
+      }
+      O[oi+3]=255;
+    }
+  }
+  out.getContext('2d').putImageData(oimg,0,0);
+  return out;
+}
+
+// percentile value of a Uint sample for contrast stretching
+function percentile(hist,total,p){
+  let acc=0, t=total*p;
+  for(let i=0;i<hist.length;i++){ acc+=hist[i]; if(acc>=t) return i; }
+  return hist.length-1;
+}
+
+function enhance(canvas,mode){
+  if(mode==='orig') return canvas;
+  const ctx=canvas.getContext('2d'), W=canvas.width, H=canvas.height;
+  const img=ctx.getImageData(0,0,W,H), p=img.data, N=W*H;
+
+  if(mode==='color'){
+    // auto white-balance: stretch each channel to its 0.5–99.5 percentile
+    for(let ch=0;ch<3;ch++){
+      const hist=new Uint32Array(256);
+      for(let i=ch;i<p.length;i+=4) hist[p[i]]++;
+      const lo=percentile(hist,N,0.005), hi=percentile(hist,N,0.995);
+      const span=Math.max(1,hi-lo);
+      for(let i=ch;i<p.length;i+=4)
+        p[i]=clamp(((p[i]-lo)*255/span),0,255);
+    }
+    ctx.putImageData(img,0,0); return canvas;
+  }
+
+  // grayscale base
+  const gray=new Uint8ClampedArray(N), hist=new Uint32Array(256);
+  for(let i=0,q=0;i<N;i++,q+=4){
+    const v=(p[q]*0.299+p[q+1]*0.587+p[q+2]*0.114)|0;
+    gray[i]=v; hist[v]++;
+  }
+
+  if(mode==='gray'){
+    const lo=percentile(hist,N,0.02), hi=percentile(hist,N,0.98);
+    const span=Math.max(1,hi-lo);
+    for(let i=0,q=0;i<N;i++,q+=4){
+      const v=clamp((gray[i]-lo)*255/span,0,255);
+      p[q]=p[q+1]=p[q+2]=v;
+    }
+    ctx.putImageData(img,0,0); return canvas;
+  }
+
+  // mode==='bw' : adaptive (local-mean) threshold via integral image
+  const ii=new Float64Array((W+1)*(H+1));
+  for(let y=1;y<=H;y++){
+    let row=0;
+    for(let x=1;x<=W;x++){
+      row+=gray[(y-1)*W+(x-1)];
+      ii[y*(W+1)+x]=ii[(y-1)*(W+1)+x]+row;
+    }
+  }
+  const rad=Math.max(8,Math.round(Math.min(W,H)/16));
+  const Cbias=8; // brightness offset; higher = more white
+  for(let y=0;y<H;y++){
+    const y0=Math.max(0,y-rad), y1=Math.min(H-1,y+rad);
+    for(let x=0;x<W;x++){
+      const x0=Math.max(0,x-rad), x1=Math.min(W-1,x+rad);
+      const area=(x1-x0+1)*(y1-y0+1);
+      const sum=ii[(y1+1)*(W+1)+(x1+1)]-ii[y0*(W+1)+(x1+1)]
+               -ii[(y1+1)*(W+1)+x0]+ii[y0*(W+1)+x0];
+      const mean=sum/area;
+      const v = gray[y*W+x] > (mean-Cbias) ? 255 : 0;
+      const q=(y*W+x)*4; p[q]=p[q+1]=p[q+2]=v;
+    }
+  }
+  ctx.putImageData(img,0,0); return canvas;
+}
+
+/* =======================================================================
+   4. APPLY / CANCEL EDIT
+   ======================================================================= */
+async function applyEdit(){
+  busy(true,'Processing page…');
+  try{
+    await new Promise(r=>setTimeout(r,30));
+    const warped=warpToRect(edit.srcCanvas,edit.corners);
+    enhance(warped,edit.filter);
+    const blob=await canvasToBlob(warped,'image/jpeg',0.92);
+    const thumb=makeThumb(warped);
+    pages.push({ jpeg:blob, thumb, w:warped.width, h:warped.height });
+    edit=null;
+    if(importQueue.length){ await openNextFromQueue(); }
+    else { showView('lib'); renderGrid(); toast('Page added'); }
+  }catch(err){ console.error(err); toast('Processing failed'); }
+  finally{ busy(false); }
+}
+function cancelEdit(){
+  edit=null;
+  if(importQueue.length){ openNextFromQueue(); }
+  else { showView('lib'); renderGrid(); }
+}
+function makeThumb(cv){
+  const TW=300, sc=TW/cv.width, t=document.createElement('canvas');
+  t.width=TW; t.height=Math.round(cv.height*sc);
+  t.getContext('2d').drawImage(cv,0,0,t.width,t.height);
+  return t.toDataURL('image/jpeg',0.7);
+}
+
+/* =======================================================================
+   5. LIBRARY (grid, reorder, delete, re-edit)
+   ======================================================================= */
+function renderGrid(){
+  const g=$('grid');
+  $('emptyState').style.display = pages.length ? 'none':'grid';
+  g.style.display = pages.length ? 'grid':'none';
+  $('exportBtn').disabled = pages.length===0;
+  g.innerHTML='';
+  pages.forEach((pg,idx)=>{
+    const card=document.createElement('div');
+    card.className='card'+(idx===selectedCardId?' sel':'');
+    card.innerHTML=`
+      <div class="thumb"><img alt="page ${idx+1}" src="${pg.thumb}"></div>
+      <div class="meta">
+        <b>Page ${idx+1}</b><span class="sp"></span>
+        <button class="iconbtn" title="Move up"   data-a="up">↑</button>
+        <button class="iconbtn" title="Move down" data-a="down">↓</button>
+        <button class="iconbtn" title="Save JPG"  data-a="jpg">⤓</button>
+        <button class="iconbtn" title="Delete"    data-a="del">🗑</button>
+      </div>`;
+    card.querySelector('.thumb').onclick=()=>{
+      selectedCardId = selectedCardId===idx?null:idx; renderGrid();
     };
+    card.querySelectorAll('button').forEach(b=>{
+      b.onclick=ev=>{ ev.stopPropagation(); gridAction(idx,b.dataset.a); };
+    });
+    g.appendChild(card);
+  });
+}
+function gridAction(i,a){
+  if(a==='up'   && i>0)          [pages[i-1],pages[i]]=[pages[i],pages[i-1]];
+  if(a==='down' && i<pages.length-1)[pages[i+1],pages[i]]=[pages[i],pages[i+1]];
+  if(a==='del'){ pages.splice(i,1); selectedCardId=null; }
+  if(a==='jpg'){
+    const url=URL.createObjectURL(pages[i].jpeg);
+    downloadURL(url,`page-${i+1}.jpg`); setTimeout(()=>URL.revokeObjectURL(url),4000);
   }
+  renderGrid();
+}
 
-  function spawn() {
-    const d = difficulty();
-    const type = OBSTACLES[(Math.random() * OBSTACLES.length) | 0];
-    const roadH = ROAD_BOTTOM - ROAD_TOP;
-    const gap = d.gap + (Math.random() * d.gapJitter - d.gapJitter/2);
-    const y = ROAD_TOP + 40 + Math.random() * (roadH - 80);
-    obstacles.push({ x: W + 40, type, y, gap, passed:false, flash:0 });
-    setToast(type.tag);
-  }
+/* =======================================================================
+   6. PDF EXPORT (pure JS, embeds JPEGs via /DCTDecode)
+   ======================================================================= */
+function openExport(){ if(pages.length) $('exportScrim').classList.add('on'); }
+function closeExport(){ $('exportScrim').classList.remove('on'); }
+let pageSize='auto';
+$('pageSizeSeg').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return; pageSize=b.dataset.s;
+  [...$('pageSizeSeg').children].forEach(x=>x.classList.toggle('on',x===b));
+});
 
-  // ----- collision -----
-  function rectsOverlap(a, b) {
-    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-  }
+function strBytes(s){
+  const a=new Uint8Array(s.length);
+  for(let i=0;i<s.length;i++) a[i]=s.charCodeAt(i)&0xff;
+  return a;
+}
 
-  function obstacleRects(o) {
-    // pair = top block + bottom block with vertical gap of `o.gap` centered at o.y
-    // solo = single block at o.y
-    const half = o.gap / 2;
-    const w = o.type.size;
-    if (o.type.kind === 'pair') {
-      return [
-        { x: o.x, y: ROAD_TOP - 10, w, h: (o.y - half) - (ROAD_TOP - 10) },
-        { x: o.x, y: o.y + half, w, h: (ROAD_BOTTOM + 10) - (o.y + half) },
-      ];
-    }
-    return [{ x: o.x, y: o.y - w * 0.35, w, h: w * 0.7 }];
-  }
+async function buildPDF(quality){
+  const SIZES={ a4:[595.28,841.89], letter:[612,792] };
+  const chunks=[], offsets=[];
+  let len=0;
+  const put=u8=>{ chunks.push(u8); len+=u8.length; };
+  const putS=s=>put(strBytes(s));
 
-  function carRect() {
-    return { x: car.x - car.w/2 + 4, y: car.y - car.h/2 + 4, w: car.w - 8, h: car.h - 8 };
-  }
+  put(strBytes('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n'));
 
-  // ----- update -----
-  function update() {
-    tick++;
-    if (state !== STATE.PLAY) return;
+  const nPages=pages.length;
+  const totalObjs=2+nPages*3;            // catalog, pages, then 3 per page
+  const mark=n=>{ offsets[n]=len; };
 
-    const d = difficulty();
+  // 1: Catalog   2: Pages
+  mark(1); putS('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+  const kids=[]; for(let i=0;i<nPages;i++) kids.push(`${3+i*3} 0 R`);
+  mark(2); putS(`2 0 obj\n<< /Type /Pages /Kids [ ${kids.join(' ')} ] `+
+                `/Count ${nPages} >>\nendobj\n`);
 
-    car.vy += GRAVITY;
-    car.y += car.vy;
-    car.rot = Math.max(-0.35, Math.min(0.8, car.vy / 14));
+  for(let i=0;i<nPages;i++){
+    const pg=pages[i];
+    const jpgBuf=new Uint8Array(await pages[i].jpeg.arrayBuffer());
+    const objPage=3+i*3, objImg=4+i*3, objCont=5+i*3;
 
-    // road boundaries
-    if (car.y - car.h/2 < ROAD_TOP)    { car.y = ROAD_TOP + car.h/2; car.vy = 0; }
-    if (car.y + car.h/2 > ROAD_BOTTOM) { die('Ran into the shoulder.'); }
-
-    // spawn loop
-    lastSpawnX -= d.speed;
-    if (lastSpawnX < W - d.spacing) { spawn(); lastSpawnX = W + 40; }
-
-    for (const o of obstacles) {
-      o.x -= d.speed;
-      if (o.flash > 0) o.flash--;
-      if (!o.passed && o.x + o.type.size < car.x) {
-        o.passed = true; score++;
-        o.flash = 10;
-      }
-    }
-    obstacles = obstacles.filter(o => o.x > -120);
-
-    // collisions
-    const cr = carRect();
-    for (const o of obstacles) {
-      for (const r of obstacleRects(o)) {
-        if (rectsOverlap(cr, r)) { die(deathLine(o.type)); return; }
-      }
-    }
-
-    if (toast) { toast.t--; if (toast.t <= 0) toast = null; }
-    if (shake > 0) shake *= 0.85;
-  }
-
-  function deathLine(t) {
-    switch (t.id) {
-      case 'burning': return 'Another I-95 rolling bonfire.';
-      case 'ducks':   return 'Duck family right-of-way.';
-      case 'detour':  return 'ROAD CLOSED. No warning. Classic.';
-      case 'cones':   return 'Eternal construction strikes again.';
-      case 'atv':     return 'Ran over by the wheelie takeover.';
-      case 'merger':  return 'He didn\u2019t signal. He never signals.';
-      case 'gator':   return 'That gator had the right of way.';
-      case 'bso':     return 'Pulled over by BSO. Have a nice day.';
-      default:        return 'Welcome to South Florida.';
-    }
-  }
-
-  function die(msg) {
-    if (state === STATE.DEAD) return;
-    state = STATE.DEAD;
-    shake = 18;
-    toast = { text: msg, t: 9999 };
-    if (score > best) { best = score; localStorage.setItem('miamidriver.best', best); }
-  }
-
-  // ----- rendering -----
-  function drawRoad() {
-    // sky / horizon
-    const grd = ctx.createLinearGradient(0, 0, 0, ROAD_TOP);
-    grd.addColorStop(0, '#ff8b57');
-    grd.addColorStop(1, '#ffd59e');
-    ctx.fillStyle = grd;
-    ctx.fillRect(0, 0, W, ROAD_TOP);
-
-    // skyline silhouette
-    ctx.fillStyle = '#1b2236';
-    for (let i = 0; i < 10; i++) {
-      const bx = (i * 56 - (tick * 0.3) % 56);
-      const bh = 18 + ((i * 37) % 26);
-      ctx.fillRect(bx, ROAD_TOP - bh, 40, bh);
-    }
-
-    // palm silhouettes
-    ctx.fillStyle = '#0f1a2a';
-    for (let i = 0; i < 5; i++) {
-      const px = ((i * 110) - (tick * 0.6)) % (W + 120) - 60;
-      ctx.fillRect(px + 18, ROAD_TOP - 44, 4, 44);
-      ctx.beginPath();
-      ctx.arc(px + 20, ROAD_TOP - 44, 14, 0, Math.PI*2);
-      ctx.fill();
-    }
-
-    // shoulder grass
-    ctx.fillStyle = '#234d2a';
-    ctx.fillRect(0, ROAD_TOP, W, 14);
-    ctx.fillRect(0, ROAD_BOTTOM - 14, W, 14);
-
-    // asphalt
-    ctx.fillStyle = '#2b2b2f';
-    ctx.fillRect(0, ROAD_TOP + 14, W, ROAD_BOTTOM - ROAD_TOP - 28);
-
-    // lane markers (scrolling dashes)
-    ctx.fillStyle = '#f5d145';
-    const lanes = 3;
-    for (let l = 1; l < lanes; l++) {
-      const y = ROAD_TOP + 14 + ((ROAD_BOTTOM - ROAD_TOP - 28) * l / lanes) - 2;
-      const dash = 30, gap = 22;
-      const off = (tick * difficulty().speed) % (dash + gap);
-      for (let x = -off; x < W; x += dash + gap) {
-        ctx.fillRect(x, y, dash, 4);
-      }
-    }
-
-    // white edge lines
-    ctx.fillStyle = '#e6e6e6';
-    ctx.fillRect(0, ROAD_TOP + 14, W, 2);
-    ctx.fillRect(0, ROAD_BOTTOM - 16, W, 2);
-  }
-
-  function drawEmoji(text, x, y, size) {
-    ctx.save();
-    ctx.font = `${size}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, x, y);
-    ctx.restore();
-  }
-
-  function drawCar() {
-    ctx.save();
-    ctx.translate(car.x, car.y);
-    ctx.rotate(car.rot);
-    // shadow
-    ctx.fillStyle = 'rgba(0,0,0,.35)';
-    ctx.beginPath(); ctx.ellipse(0, car.h/2 + 6, car.w/2, 5, 0, 0, Math.PI*2); ctx.fill();
-    // emoji car body
-    drawEmoji('\uD83C\uDFCE\uFE0F', 0, 0, 48);
-    ctx.restore();
-  }
-
-  function drawObstacle(o) {
-    const w = o.type.size;
-    if (o.type.kind === 'pair') {
-      // two stacked emojis framing the gap
-      const topY = (ROAD_TOP + (o.y - o.gap/2)) / 2;
-      const botY = (ROAD_BOTTOM + (o.y + o.gap/2)) / 2;
-      // warning barrier bars behind the emoji for readability
-      ctx.fillStyle = o.flash ? 'rgba(255,240,120,.85)' : 'rgba(255,200,60,.18)';
-      ctx.fillRect(o.x - w/2, ROAD_TOP + 14, w, (o.y - o.gap/2) - (ROAD_TOP + 14));
-      ctx.fillRect(o.x - w/2, o.y + o.gap/2, w, (ROAD_BOTTOM - 16) - (o.y + o.gap/2));
-      // diagonal hazard stripes
-      ctx.save();
-      ctx.strokeStyle = 'rgba(20,20,20,.7)'; ctx.lineWidth = 3;
-      for (let s = -40; s < 300; s += 14) {
-        ctx.beginPath();
-        ctx.moveTo(o.x - w/2 + s, ROAD_TOP + 14);
-        ctx.lineTo(o.x - w/2 + s - 40, ROAD_BOTTOM - 16);
-        ctx.stroke();
-      }
-      ctx.restore();
-      drawEmoji(o.type.emoji, o.x, topY, w * 0.7);
-      drawEmoji(o.type.emoji, o.x, botY, w * 0.7);
+    // page geometry
+    let PW,PH,iw,ih,ix,iy;
+    if(pageSize==='auto'){
+      PW = pg.w*72/150; PH = pg.h*72/150;       // ~150 dpi page
+      iw=PW; ih=PH; ix=0; iy=0;
     } else {
-      if (o.flash) {
-        ctx.fillStyle = 'rgba(255,240,120,.8)';
-        ctx.beginPath(); ctx.arc(o.x, o.y, w*0.6, 0, Math.PI*2); ctx.fill();
+      [PW,PH]=SIZES[pageSize];
+      const m=18, aw=PW-2*m, ah=PH-2*m;
+      const s=Math.min(aw/pg.w, ah/pg.h);
+      iw=pg.w*s; ih=pg.h*s; ix=(PW-iw)/2; iy=(PH-ih)/2;
+    }
+    const fmt=v=>(Math.round(v*1000)/1000).toString();
+
+    mark(objPage);
+    putS(`${objPage} 0 obj\n<< /Type /Page /Parent 2 0 R `+
+         `/MediaBox [0 0 ${fmt(PW)} ${fmt(PH)}] `+
+         `/Resources << /XObject << /Im0 ${objImg} 0 R >> >> `+
+         `/Contents ${objCont} 0 R >>\nendobj\n`);
+
+    mark(objImg);
+    putS(`${objImg} 0 obj\n<< /Type /XObject /Subtype /Image `+
+         `/Width ${pg.w} /Height ${pg.h} /ColorSpace /DeviceRGB `+
+         `/BitsPerComponent 8 /Filter /DCTDecode `+
+         `/Length ${jpgBuf.length} >>\nstream\n`);
+    put(jpgBuf);
+    putS('\nendstream\nendobj\n');
+
+    const cs=`q ${fmt(iw)} 0 0 ${fmt(ih)} ${fmt(ix)} ${fmt(iy)} cm /Im0 Do Q`;
+    mark(objCont);
+    putS(`${objCont} 0 obj\n<< /Length ${cs.length} >>\nstream\n${cs}\nendstream\nendobj\n`);
+  }
+
+  // xref
+  const xrefStart=len;
+  putS(`xref\n0 ${totalObjs+1}\n`);
+  putS('0000000000 65535 f \n');
+  for(let n=1;n<=totalObjs;n++){
+    putS(String(offsets[n]).padStart(10,'0')+' 00000 n \n');
+  }
+  putS(`trailer\n<< /Size ${totalObjs+1} /Root 1 0 R >>\n`);
+  putS(`startxref\n${xrefStart}\n%%EOF`);
+
+  const blob=new Blob(chunks,{type:'application/pdf'});
+  return blob;
+}
+
+async function doExport(){
+  closeExport();
+  busy(true,'Building PDF…');
+  try{
+    const q=parseFloat($('jpgQ').value);
+    // re-encode each page at chosen quality
+    const orig=pages.map(p=>p.jpeg);
+    if(q!==0.92){
+      for(let i=0;i<pages.length;i++){
+        const im=await loadImage(pages[i].jpeg);
+        const c=document.createElement('canvas');
+        c.width=pages[i].w; c.height=pages[i].h;
+        c.getContext('2d').drawImage(im,0,0);
+        pages[i].jpeg=await canvasToBlob(c,'image/jpeg',q);
       }
-      drawEmoji(o.type.emoji, o.x, o.y, w);
     }
-  }
+    const blob=await buildPDF(q);
+    pages.forEach((p,i)=>p.jpeg=orig[i]);          // restore master copies
+    let name=($('pdfName').value||'scan').replace(/[^\w\-]+/g,'_');
+    const url=URL.createObjectURL(blob);
+    downloadURL(url,name+'.pdf');
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    toast(`PDF ready · ${pages.length} page${pages.length>1?'s':''}`);
+  }catch(err){ console.error(err); toast('Export failed'); }
+  finally{ busy(false); }
+}
 
-  function drawHUD() {
-    ctx.save();
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 42px system-ui,Arial';
-    ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(0,0,0,.65)';
-    ctx.strokeText(String(score), W/2, 52);
-    ctx.fillText(String(score), W/2, 52);
+function downloadURL(url,filename){
+  const a=document.createElement('a');
+  a.href=url; a.download=filename; document.body.appendChild(a);
+  a.click(); a.remove();
+}
 
-    ctx.font = '12px system-ui,Arial';
-    ctx.textAlign = 'left';
-    ctx.fillStyle = 'rgba(255,255,255,.75)';
-    ctx.fillText(`BEST ${best}`, 10, 20);
-    ctx.textAlign = 'right';
-    ctx.fillText('MIAMI DRIVER', W - 10, 20);
-    ctx.restore();
+/* =======================================================================
+   7. VIEW SWITCHING
+   ======================================================================= */
+function showView(v){
+  const isEdit = v==='edit';
+  $('libView').style.display   = isEdit?'none':'block';
+  $('editView').style.display  = isEdit?'flex':'none';
+  $('libFooter').style.display = isEdit?'none':'flex';
+  $('editFooter').style.display= isEdit?'flex':'none';
+  $('title').textContent = isEdit?'Adjust & enhance':'PocketScan';
+  if(!isEdit) renderGrid();
+}
+window.addEventListener('resize',()=>{ if(edit) fitEditorCanvas(); });
 
-    if (toast) {
-      ctx.save();
-      ctx.textAlign = 'center';
-      ctx.font = 'bold 16px system-ui,Arial';
-      ctx.fillStyle = 'rgba(0,0,0,.55)';
-      const tw = ctx.measureText(toast.text).width + 24;
-      ctx.fillRect(W/2 - tw/2, 70, tw, 26);
-      ctx.fillStyle = '#ffe98a';
-      ctx.fillText(toast.text, W/2, 88);
-      ctx.restore();
-    }
-  }
-
-  function drawOverlay() {
-    if (state === STATE.READY) {
-      panel([
-        { t: 'MIAMI DRIVER', size: 30, color: '#ffe98a' },
-        { t: 'dodge South Florida', size: 16 },
-        { t: 'SPACE / tap to hop', size: 14 },
-        { t: 'P to pause', size: 12, color: 'rgba(255,255,255,.6)' },
-      ]);
-    } else if (state === STATE.PAUSE) {
-      panel([{ t: 'PAUSED', size: 28, color: '#ffe98a' },
-             { t: 'press P to resume', size: 14 }]);
-    } else if (state === STATE.DEAD) {
-      panel([
-        { t: 'GAME OVER', size: 30, color: '#ff8888' },
-        { t: toast ? toast.text : '', size: 14, color: '#ffe98a' },
-        { t: `score ${score}  \u2022  best ${best}`, size: 16 },
-        { t: 'SPACE / tap to retry', size: 13, color: 'rgba(255,255,255,.75)' },
-      ]);
-    }
-  }
-
-  function panel(lines) {
-    const pw = 320, ph = 40 + lines.length * 28;
-    const px = W/2 - pw/2, py = H/2 - ph/2;
-    ctx.save();
-    ctx.fillStyle = 'rgba(10,14,28,.82)';
-    ctx.strokeStyle = 'rgba(255,255,255,.18)';
-    ctx.lineWidth = 2;
-    roundRect(px, py, pw, ph, 14, true, true);
-    ctx.textAlign = 'center';
-    let y = py + 36;
-    for (const l of lines) {
-      ctx.fillStyle = l.color || '#fff';
-      ctx.font = `${l.size >= 22 ? 'bold ' : ''}${l.size}px system-ui,Arial`;
-      ctx.fillText(l.t, W/2, y);
-      y += 28;
-    }
-    ctx.restore();
-  }
-
-  function roundRect(x, y, w, h, r, fill, stroke) {
-    ctx.beginPath();
-    ctx.moveTo(x+r, y);
-    ctx.arcTo(x+w, y,   x+w, y+h, r);
-    ctx.arcTo(x+w, y+h, x,   y+h, r);
-    ctx.arcTo(x,   y+h, x,   y,   r);
-    ctx.arcTo(x,   y,   x+w, y,   r);
-    ctx.closePath();
-    if (fill) ctx.fill();
-    if (stroke) ctx.stroke();
-  }
-
-  // ----- main loop -----
-  function frame() {
-    update();
-    ctx.save();
-    if (shake > 0.5) {
-      ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
-    }
-    drawRoad();
-    for (const o of obstacles) drawObstacle(o);
-    drawCar();
-    ctx.restore();
-    drawHUD();
-    drawOverlay();
-    requestAnimationFrame(frame);
-  }
-
-  reset();
-  frame();
-})();
+renderGrid();
 </script>
 </body>
 </html>
