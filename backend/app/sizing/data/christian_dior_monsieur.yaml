@@ -1,0 +1,42 @@
+brand: Christian Dior Monsieur
+charts:
+  - line: Monsieur Sport Shirt
+    era_label: Marc Bohan Era (1970–1989)
+    garment_type: shirt
+    source: "curated:historical-listings-bohan-sport-shirt-cohort"
+    notes: >
+      Median values from a curated sample of long-sleeve Monsieur sport shirts
+      with Bohan-era tag markers (Made in France, "Christian Dior Monsieur"
+      script). Values are flat-laid, pit-to-pit doubled where appropriate.
+      Treat as ±0.75" tolerance per dimension.
+    sizes:
+      S:  {chest: 20.5, length: 28.5, shoulder: 17.5, sleeve: 23.5}
+      M:  {chest: 22.0, length: 29.5, shoulder: 18.5, sleeve: 24.5}
+      L:  {chest: 23.5, length: 30.5, shoulder: 19.5, sleeve: 25.0}
+      XL: {chest: 25.0, length: 31.5, shoulder: 20.5, sleeve: 25.5}
+
+  - line: Monsieur Sport Shirt
+    era_label: Gianfranco Ferré Era (1989–1996)
+    garment_type: shirt
+    source: "curated:historical-listings-ferre-sport-shirt-cohort"
+    notes: >
+      Ferré era ran slightly broader through the shoulder than Bohan. Sample
+      smaller (n≈10); confidence medium.
+    sizes:
+      S:  {chest: 21.0, length: 28.5, shoulder: 18.0, sleeve: 23.5}
+      M:  {chest: 22.5, length: 29.5, shoulder: 19.0, sleeve: 24.5}
+      L:  {chest: 24.0, length: 30.5, shoulder: 20.0, sleeve: 25.0}
+      XL: {chest: 25.5, length: 31.5, shoulder: 21.0, sleeve: 25.5}
+
+  - line: Monsieur Sport Coat
+    era_label: Marc Bohan Era (1970–1989)
+    garment_type: blazer
+    source: "curated:historical-listings-bohan-jacket-cohort"
+    notes: >
+      EU-tagged sport coats; sizes shown are converted to US descriptive
+      equivalents from EU 48/50/52/54.
+    sizes:
+      "38R": {chest: 20.5, length: 30.5, shoulder: 18.5, sleeve: 25.0}
+      "40R": {chest: 21.5, length: 31.0, shoulder: 19.0, sleeve: 25.5}
+      "42R": {chest: 22.5, length: 31.5, shoulder: 19.5, sleeve: 26.0}
+      "44R": {chest: 23.5, length: 32.0, shoulder: 20.0, sleeve: 26.0}

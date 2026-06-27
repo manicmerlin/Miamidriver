@@ -1,0 +1,40 @@
+brand: J.Crew
+charts:
+  - line: Slim Untucked
+    era_label: Mickey Drexler Era (2003–2017)
+    garment_type: shirt
+    source: "curated:jcrew-published-sizing-2014-2017"
+    notes: >
+      "Slim Untucked" was J.Crew's shorter-back-length cut for un-tucked wear.
+      Body length ~2" shorter than regular Slim. Drawn from their published
+      size guide circa 2014-2017.
+    sizes:
+      XS: {chest: 19.0, length: 27.5, shoulder: 16.5, sleeve: 23.5}
+      S:  {chest: 20.0, length: 28.0, shoulder: 17.0, sleeve: 24.0}
+      M:  {chest: 21.5, length: 28.5, shoulder: 17.5, sleeve: 24.5}
+      L:  {chest: 23.0, length: 29.0, shoulder: 18.5, sleeve: 25.0}
+      XL: {chest: 24.5, length: 29.5, shoulder: 19.5, sleeve: 25.5}
+
+  - line: Flex Washed
+    era_label: Mickey Drexler Era (2003–2017)
+    garment_type: shirt
+    source: "curated:jcrew-published-sizing-2015-2017"
+    notes: >
+      Cotton with stretch — runs true to size. Length is regular-cut, not
+      Slim Untucked.
+    sizes:
+      S:  {chest: 20.5, length: 30.0, shoulder: 17.5, sleeve: 24.5}
+      M:  {chest: 22.0, length: 30.5, shoulder: 18.0, sleeve: 25.0}
+      L:  {chest: 23.5, length: 31.0, shoulder: 19.0, sleeve: 25.5}
+      XL: {chest: 25.0, length: 31.5, shoulder: 20.0, sleeve: 26.0}
+
+  - line: Vintage J.Crew Oxford
+    era_label: Vintage J.Crew (1983–1999)
+    garment_type: shirt
+    source: "curated:historical-listings-usa-tag-cohort"
+    notes: >
+      Boxier than modern. Sample of Made-in-USA J.Crew oxfords; chest runs
+      ~1.5" wider than equivalent modern size.
+    sizes:
+      M: {chest: 23.0, length: 30.0, shoulder: 19.0, sleeve: 25.0}
+      L: {chest: 24.5, length: 31.0, shoulder: 20.0, sleeve: 25.5}

@@ -1,0 +1,26 @@
+brand: Polo Ralph Lauren
+charts:
+  - line: Classic Fit Oxford
+    era_label: 2000s Classic Fit
+    garment_type: shirt
+    source: "curated:rl-published-sizing-2010"
+    notes: >
+      The original boxier Classic Fit — broader than Custom Fit (2010+).
+      Used as a high-volume cross-reference for vintage shoppers.
+    sizes:
+      S:  {chest: 22.0, length: 30.0, shoulder: 18.5, sleeve: 24.5}
+      M:  {chest: 23.5, length: 31.0, shoulder: 19.5, sleeve: 25.0}
+      L:  {chest: 25.0, length: 32.0, shoulder: 20.5, sleeve: 25.5}
+      XL: {chest: 26.5, length: 33.0, shoulder: 21.5, sleeve: 26.0}
+
+  - line: Custom Fit Oxford
+    era_label: 2010s Custom Fit
+    garment_type: shirt
+    source: "curated:rl-published-sizing-2014"
+    notes: >
+      Slimmer than Classic. Chest ~2" narrower per size, length comparable.
+    sizes:
+      S:  {chest: 20.5, length: 29.5, shoulder: 17.5, sleeve: 24.0}
+      M:  {chest: 22.0, length: 30.0, shoulder: 18.5, sleeve: 24.5}
+      L:  {chest: 23.5, length: 31.0, shoulder: 19.5, sleeve: 25.0}
+      XL: {chest: 25.0, length: 32.0, shoulder: 20.5, sleeve: 25.5}

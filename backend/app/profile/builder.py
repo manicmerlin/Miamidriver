@@ -16,7 +16,14 @@ import hashlib
 from typing import Iterable
 
 from ..brands import lookup_brand
-from ..schemas import BrandRecord, FitProfile, GarmentType, SourceGarment
+from ..schemas import (
+    BrandRecord,
+    EraInferenceSignal,
+    FitProfile,
+    GarmentType,
+    SourceGarment,
+)
+from .era_resolver import resolve_era
 
 
 def _profile_id(sources: Iterable[SourceGarment]) -> str:
@@ -29,18 +36,6 @@ def _profile_id(sources: Iterable[SourceGarment]) -> str:
         if s.raw_seller_size_label:
             h.update(s.raw_seller_size_label.encode())
     return h.hexdigest()[:12]
-
-
-def _resolve_era(source: SourceGarment, brand: BrandRecord | None) -> str | None:
-    if brand and brand.eras and source.country_of_origin:
-        country = source.country_of_origin.value.lower()
-        for era in brand.eras:
-            for marker in era.tag_markers:
-                if country in marker.lower():
-                    return era.label
-    if source.era_hint:
-        return source.era_hint.value
-    return None
 
 
 def _resolve_line(source: SourceGarment, brand: BrandRecord | None) -> str | None:
@@ -65,7 +60,10 @@ def _resolve_line(source: SourceGarment, brand: BrandRecord | None) -> str | Non
     return None
 
 
-def build_fit_profile(sources: list[SourceGarment]) -> FitProfile:
+def build_fit_profile(
+    sources: list[SourceGarment],
+    extra_era_signals: list[EraInferenceSignal] | None = None,
+) -> FitProfile:
     if not sources:
         raise ValueError("build_fit_profile requires at least one source garment")
 
@@ -76,7 +74,7 @@ def build_fit_profile(sources: list[SourceGarment]) -> FitProfile:
     canonical_brand = brand_record.canonical_name if brand_record else brand_name
 
     line = _resolve_line(primary, brand_record)
-    era = _resolve_era(primary, brand_record)
+    era = resolve_era(primary, brand_record, extra_era_signals).chosen_era_label
 
     garment_type = primary.garment_type if primary.garment_type != GarmentType.unknown else GarmentType.unknown
     for s in sources[1:]:

@@ -191,6 +191,90 @@ class MarketplaceQuery(BaseModel):
     )
 
 
+# -- Sizing knowledge base ----------------------------------------------------
+
+
+class SizeChartEntry(BaseModel):
+    """Canonical measurements for a single (brand, line, era, garment_type, size).
+
+    `source` records provenance — was this hand-curated from brand archives, or
+    estimated from a sample of historical listings? UI surfaces this so the user
+    knows the confidence behind any cross-match.
+    """
+
+    brand: str
+    line: str
+    era_label: str
+    garment_type: GarmentType
+    size_label: str
+    measurements: list[Measurement]
+    source: str = Field(
+        description="'curated:archive', 'curated:historical-listings', 'user-contributed', etc."
+    )
+    notes: str | None = None
+
+
+# -- Era inference -------------------------------------------------------------
+
+
+class EraInferenceSignal(BaseModel):
+    """One observation that pushed the era estimate toward a specific label."""
+
+    label_pushed: str = Field(description="Which era_label this signal supports")
+    observation: str = Field(
+        description="Human-readable: 'Mauritius country tag', '70s-style pointed collar', 'sun-faded brand label'"
+    )
+    weight: float = Field(default=1.0, ge=0.0, le=5.0)
+    source: str = Field(description="'tag-marker', 'photo-collar', 'photo-fabric', 'photo-label', etc.")
+
+
+class EraInference(BaseModel):
+    chosen_era_label: str | None = None
+    confidence: Confidence = Confidence.low
+    signals: list[EraInferenceSignal] = Field(default_factory=list)
+    alternates: list[str] = Field(
+        default_factory=list,
+        description="Other era labels considered but ranked lower",
+    )
+
+
+# -- Photo features ------------------------------------------------------------
+
+
+class PhotoFeatures(BaseModel):
+    """Vision-model observations about a garment from its listing photos."""
+
+    collar_style: str | None = None
+    button_style: str | None = None
+    fabric_pattern: str | None = None
+    fit_silhouette: str | None = None
+    label_aging: str | None = None
+    additional_notes: list[str] = Field(default_factory=list)
+    raw_response: str | None = None
+
+
+# -- Cross-collection match candidates -----------------------------------------
+
+
+class CrossMatchCandidate(BaseModel):
+    """Another (brand, line, era, size) whose canonical measurements fit
+    within tolerance of the source garment."""
+
+    entry: SizeChartEntry
+    distance: float = Field(description="Normalized L1 distance — lower is closer")
+    matched_measurements: list[str] = Field(
+        description="Which measurement names were compared"
+    )
+    delta_inches: dict[str, float] = Field(
+        default_factory=dict,
+        description="Per-measurement diff vs source garment, in inches",
+    )
+    query: "MarketplaceQuery | None" = Field(
+        default=None,
+        description="Optional pre-built search query for the matched combo",
+    )
+
+
 # -- API request / response payloads ------------------------------------------
 
 
@@ -203,3 +287,13 @@ class IngestResponse(BaseModel):
     source: SourceGarment
     profile: FitProfile
     queries: list[MarketplaceQuery]
+    era_inference: EraInference | None = None
+    canonical_measurements: list[Measurement] = Field(
+        default_factory=list,
+        description="Looked up from the sizing KB for the resolved (brand, line, era, size). May differ from seller-stated.",
+    )
+    photo_features: PhotoFeatures | None = None
+    cross_matches: list[CrossMatchCandidate] = Field(
+        default_factory=list,
+        description="Other vintage collections whose canonical sizing is similar.",
+    )
