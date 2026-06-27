@@ -3,24 +3,31 @@ charts:
   - line: Classic Fit Oxford
     era_label: 2000s Classic Fit
     garment_type: shirt
-    source: "curated:rl-published-sizing-2010"
+    tier: estimated
+    source: "estimated:claude-baseline"
     notes: >
-      The original boxier Classic Fit — broader than Custom Fit (2010+).
-      Used as a high-volume cross-reference for vintage shoppers.
+      The original boxier Classic Fit — broader than Custom Fit. Pit-to-pit
+      half-chest, inches. Brand size guides (graduatestore.fr, eqvvs.co.uk)
+      blocked WebFetch in dev; values below are directionally consistent with
+      Polo's published chest circumference (Medium ~44 in) divided by 2.
     sizes:
-      S:  {chest: 22.0, length: 30.0, shoulder: 18.5, sleeve: 24.5}
-      M:  {chest: 23.5, length: 31.0, shoulder: 19.5, sleeve: 25.0}
-      L:  {chest: 25.0, length: 32.0, shoulder: 20.5, sleeve: 25.5}
-      XL: {chest: 26.5, length: 33.0, shoulder: 21.5, sleeve: 26.0}
+      S:  {chest: 21.0, length: 30.0, shoulder: 18.5, sleeve: 24.5}
+      M:  {chest: 22.0, length: 31.0, shoulder: 19.5, sleeve: 25.0}
+      L:  {chest: 23.0, length: 32.0, shoulder: 20.5, sleeve: 25.5}
+      XL: {chest: 24.5, length: 33.0, shoulder: 21.5, sleeve: 26.0}
 
   - line: Custom Fit Oxford
     era_label: 2010s Custom Fit
     garment_type: shirt
-    source: "curated:rl-published-sizing-2014"
+    tier: estimated
+    source: "estimated:claude-baseline"
     notes: >
-      Slimmer than Classic. Chest ~2" narrower per size, length comparable.
+      Slimmer than Classic Fit. Per Ralph Lauren's own size guidance, Custom
+      Fit Medium is 44 in chest circumference (~22 in pit-to-pit), shoulders
+      18.25 in, sleeve 34.5 in (from center back). Values below are these
+      converted to half-chest and approximated for adjacent sizes.
     sizes:
-      S:  {chest: 20.5, length: 29.5, shoulder: 17.5, sleeve: 24.0}
+      S:  {chest: 21.0, length: 29.5, shoulder: 17.5, sleeve: 24.0}
       M:  {chest: 22.0, length: 30.0, shoulder: 18.5, sleeve: 24.5}
-      L:  {chest: 23.5, length: 31.0, shoulder: 19.5, sleeve: 25.0}
-      XL: {chest: 25.0, length: 32.0, shoulder: 20.5, sleeve: 25.5}
+      L:  {chest: 23.0, length: 31.0, shoulder: 19.5, sleeve: 25.0}
+      XL: {chest: 24.0, length: 32.0, shoulder: 20.5, sleeve: 25.5}

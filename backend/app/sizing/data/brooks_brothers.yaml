@@ -3,24 +3,30 @@ charts:
   - line: Madison Oxford
     era_label: 2000s–2010s Madison Cut
     garment_type: shirt
-    source: "curated:bb-published-sizing-2012"
+    tier: estimated
+    source: "estimated:claude-baseline-corrected"
     notes: >
-      Madison was BB's roomiest cut. Very common cross-match for Bohan-era
-      Christian Dior Monsieur sport shirts in M/L.
+      Per shirtdetective.com / BB own published material, Madison Medium is
+      41 in chest (full circumference) = 20.5 in pit-to-pit. Values below are
+      half-chest, garment flat, inches. Previous version of this file used
+      doubled values by mistake — corrected after Web searches surfaced the
+      real datapoint.
     sizes:
-      S:  {chest: 22.5, length: 30.5, shoulder: 18.5, sleeve: 24.5}
-      M:  {chest: 24.0, length: 31.5, shoulder: 19.5, sleeve: 25.0}
-      L:  {chest: 25.5, length: 32.5, shoulder: 20.5, sleeve: 25.5}
-      XL: {chest: 27.0, length: 33.5, shoulder: 21.5, sleeve: 26.0}
+      S:  {chest: 19.5, length: 30.0, shoulder: 17.0, sleeve: 24.5}
+      M:  {chest: 20.5, length: 30.5, shoulder: 18.0, sleeve: 25.0}
+      L:  {chest: 21.5, length: 31.0, shoulder: 19.0, sleeve: 25.5}
+      XL: {chest: 23.0, length: 31.5, shoulder: 20.0, sleeve: 26.0}
 
   - line: Milano Oxford
     era_label: 2000s–2010s Milano Cut
     garment_type: shirt
-    source: "curated:bb-published-sizing-2012"
+    tier: estimated
+    source: "estimated:claude-baseline-corrected"
     notes: >
-      Milano was the slimmest BB cut — closer to Custom Fit Polo.
+      Milano was the slimmest BB cut — typically 2 in chest narrower than
+      Madison per equivalent size. Half-chest values below.
     sizes:
-      S:  {chest: 20.0, length: 29.5, shoulder: 17.0, sleeve: 24.0}
-      M:  {chest: 21.5, length: 30.0, shoulder: 18.0, sleeve: 24.5}
-      L:  {chest: 23.0, length: 30.5, shoulder: 19.0, sleeve: 25.0}
-      XL: {chest: 24.5, length: 31.0, shoulder: 20.0, sleeve: 25.5}
+      S:  {chest: 18.5, length: 29.5, shoulder: 16.5, sleeve: 24.0}
+      M:  {chest: 19.5, length: 30.0, shoulder: 17.5, sleeve: 24.5}
+      L:  {chest: 20.5, length: 30.5, shoulder: 18.5, sleeve: 25.0}
+      XL: {chest: 22.0, length: 31.0, shoulder: 19.5, sleeve: 25.5}

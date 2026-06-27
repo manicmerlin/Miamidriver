@@ -7,6 +7,10 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     vision_provider: str = "stub"
+    # When 'anthropic' and an api key is set, ingest will run a live web
+    # research pass if the curated sizing KB has no 'researched' entry for
+    # the resolved (brand, line, era, size). Set to 'off' to disable.
+    research_provider: str = "off"
     anthropic_api_key: str | None = None
     data_dir: Path = Path("./var")
     user_agent: str = (

@@ -5,7 +5,7 @@ from app.sizing import all_charts, lookup_size_chart
 def test_dior_monsieur_l_bohan_resolved():
     chart = lookup_size_chart(
         brand="Christian Dior Monsieur",
-        line="Monsieur Sport Shirt",
+        line="Monsieur Long-Sleeve Sport Shirt",
         era_label="Marc Bohan Era (1970–1989)",
         garment_type=GarmentType.shirt,
         size_label="L",
@@ -13,12 +13,14 @@ def test_dior_monsieur_l_bohan_resolved():
     assert chart is not None
     assert chart.brand == "Christian Dior Monsieur"
     assert chart.size_label == "L"
+    assert chart.tier == "researched"
+    assert chart.citations, "researched entries must carry citations"
     chest = next(m for m in chart.measurements if m.name == "chest")
-    assert chest.value == 23.5
+    assert chest.value == 23.0  # pit-to-pit, half-chest
     assert chest.unit == "in"
 
 
-def test_jcrew_slim_untucked_l_drexler():
+def test_jcrew_slim_untucked_l_drexler_is_marked_estimated():
     chart = lookup_size_chart(
         brand="J.Crew",
         line="Slim Untucked",
@@ -27,8 +29,10 @@ def test_jcrew_slim_untucked_l_drexler():
         size_label="L",
     )
     assert chart is not None
+    assert chart.tier == "estimated"
     chest = next(m for m in chart.measurements if m.name == "chest")
-    assert chest.value == 23.0
+    # Half-chest pit-to-pit value, NOT the doubled full-chest from earlier rev.
+    assert chest.value == 22.0
 
 
 def test_returns_none_when_brand_missing():

@@ -176,12 +176,19 @@ struct CrossMatchCandidate: Codable, Identifiable {
     }
 }
 
+enum SizeChartTier: String, Codable {
+    case estimated, researched
+    case userContributed = "user_contributed"
+}
+
 struct IngestResponse: Codable {
     let source: SourceGarment
     let profile: FitProfile
     let queries: [MarketplaceQuery]
     let eraInference: EraInference?
     let canonicalMeasurements: [Measurement]
+    let canonicalTier: SizeChartTier?
+    let canonicalCitations: [String]
     let photoFeatures: PhotoFeatures?
     let crossMatches: [CrossMatchCandidate]
 
@@ -189,6 +196,8 @@ struct IngestResponse: Codable {
         case source, profile, queries
         case eraInference = "era_inference"
         case canonicalMeasurements = "canonical_measurements"
+        case canonicalTier = "canonical_tier"
+        case canonicalCitations = "canonical_citations"
         case photoFeatures = "photo_features"
         case crossMatches = "cross_matches"
     }

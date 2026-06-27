@@ -21,15 +21,18 @@ import logging
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from ..brands import lookup_brand
+from ..config import settings
 from ..cross_match import find_cross_matches
 from ..ingestion import fetch_source_garment
 from ..profile import build_fit_profile, resolve_era
+from ..research import research_size_chart
 from ..schemas import (
     CrossMatchCandidate,
     FitProfile,
     GarmentType,
     IngestResponse,
     Marketplace,
+    SizeChartTier,
     SourceGarment,
 )
 from ..search_terms import generate_queries
@@ -91,7 +94,9 @@ async def ingest(
     if notes:
         profile.notes.append(notes)
 
-    # Step 5: canonical sizing lookup
+    # Step 5: canonical sizing lookup. If the curated KB only has an
+    # `estimated` entry (or none at all), optionally fall back to live web
+    # research so we don't hand the user my best-guesses as if they were real.
     chart_entry = lookup_size_chart(
         brand=profile.brand,
         line=profile.line,
@@ -99,6 +104,21 @@ async def ingest(
         garment_type=profile.garment_type,
         size_label=profile.size_label,
     )
+    if (
+        settings.research_provider.lower() == "anthropic"
+        and (chart_entry is None or chart_entry.tier != SizeChartTier.researched)
+        and profile.brand
+        and profile.size_label
+    ):
+        researched = await research_size_chart(
+            brand=profile.brand,
+            line=profile.line,
+            era_label=profile.era_label,
+            garment_type=profile.garment_type,
+            size_label=profile.size_label,
+        )
+        if researched is not None:
+            chart_entry = researched
     canonical = canonical_measurements(chart_entry)
 
     # Step 6: cross-matches — use canonical measurements when we have them,
@@ -140,6 +160,8 @@ async def ingest(
         queries=queries,
         era_inference=era_inference,
         canonical_measurements=canonical,
+        canonical_tier=chart_entry.tier if chart_entry else None,
+        canonical_citations=list(chart_entry.citations) if chart_entry else [],
         photo_features=photo_features if (photo_urls or photo_features.raw_response) else None,
         cross_matches=cross_matches,
     )

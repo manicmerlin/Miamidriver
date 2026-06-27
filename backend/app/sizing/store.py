@@ -16,7 +16,7 @@ from pathlib import Path
 
 import yaml
 
-from ..schemas import Confidence, GarmentType, Measurement, SizeChartEntry
+from ..schemas import Confidence, GarmentType, Measurement, SizeChartEntry, SizeChartTier
 
 
 _DATA_DIR = Path(__file__).parent / "data"
@@ -37,6 +37,13 @@ def _load_all() -> list[SizeChartEntry]:
             garment_type = GarmentType(chart.get("garment_type", "unknown"))
             source = chart.get("source", "curated:unknown")
             notes = chart.get("notes")
+            tier = SizeChartTier(chart.get("tier", "estimated"))
+            citations = list(chart.get("citations") or [])
+            # Researched values get high confidence; estimated values get
+            # low, so the cross-match engine doesn't pretend they're trustworthy.
+            value_confidence = (
+                Confidence.high if tier == SizeChartTier.researched else Confidence.low
+            )
             for size_label, dims in chart.get("sizes", {}).items():
                 measurements = [
                     Measurement(
@@ -44,7 +51,7 @@ def _load_all() -> list[SizeChartEntry]:
                         value=float(value),
                         unit="in",
                         source=f"size-chart:{source}",
-                        confidence=Confidence.high,
+                        confidence=value_confidence,
                     )
                     for name, value in dims.items()
                 ]
@@ -57,6 +64,8 @@ def _load_all() -> list[SizeChartEntry]:
                         size_label=str(size_label),
                         measurements=measurements,
                         source=source,
+                        tier=tier,
+                        citations=citations,
                         notes=notes,
                     )
                 )

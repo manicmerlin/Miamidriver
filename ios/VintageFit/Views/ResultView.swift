@@ -30,13 +30,27 @@ struct ResultView: View {
             }
 
             if !response.canonicalMeasurements.isEmpty {
-                Section("Canonical measurements (sizing KB)") {
+                Section {
                     ForEach(response.canonicalMeasurements) { m in
                         HStack {
                             Text(m.name.capitalized)
                             Spacer()
                             Text("\(m.value, specifier: "%.1f") \(m.unit)")
                                 .foregroundStyle(.secondary)
+                        }
+                    }
+                    if !response.canonicalCitations.isEmpty {
+                        DisclosureGroup("Sources") {
+                            ForEach(response.canonicalCitations, id: \.self) { c in
+                                Text(c).font(.caption2).textSelection(.enabled)
+                            }
+                        }
+                    }
+                } header: {
+                    HStack(spacing: 6) {
+                        Text("Canonical measurements")
+                        if let tier = response.canonicalTier {
+                            TierBadge(tier: tier)
                         }
                     }
                 }
@@ -107,6 +121,35 @@ private struct LabeledField: View {
             Text(label).foregroundStyle(.secondary)
             Spacer()
             Text(value).multilineTextAlignment(.trailing)
+        }
+    }
+}
+
+private struct TierBadge: View {
+    let tier: SizeChartTier
+
+    var body: some View {
+        Text(label)
+            .font(.caption2.bold())
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(color.opacity(0.2), in: Capsule())
+            .foregroundStyle(color)
+    }
+
+    private var label: String {
+        switch tier {
+        case .estimated: return "ESTIMATED"
+        case .researched: return "RESEARCHED"
+        case .userContributed: return "YOUR DATA"
+        }
+    }
+
+    private var color: Color {
+        switch tier {
+        case .estimated: return .orange
+        case .researched: return .green
+        case .userContributed: return .blue
         }
     }
 }

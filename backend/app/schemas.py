@@ -194,12 +194,27 @@ class MarketplaceQuery(BaseModel):
 # -- Sizing knowledge base ----------------------------------------------------
 
 
+class SizeChartTier(str, Enum):
+    """Provenance tier — UI shows this so the user knows whether numbers are
+    real (`researched`) or my best-guess fillers (`estimated`)."""
+
+    estimated = "estimated"
+    researched = "researched"
+    user_contributed = "user_contributed"
+
+
 class SizeChartEntry(BaseModel):
     """Canonical measurements for a single (brand, line, era, garment_type, size).
 
-    `source` records provenance — was this hand-curated from brand archives, or
-    estimated from a sample of historical listings? UI surfaces this so the user
-    knows the confidence behind any cross-match.
+    Convention: every measurement value is pit-to-pit (half-chest) /
+    flat-laid, in inches, unless explicitly tagged otherwise on the
+    Measurement itself.
+
+    The `tier` field is the critical signal: `estimated` means I (the model)
+    wrote in a plausible number from general knowledge — treat with caution.
+    `researched` means the entry was derived from a cited source (brand
+    archive page, sampled listings, Reddit/blog comparison post) and the
+    sources are in `citations`.
     """
 
     brand: str
@@ -210,6 +225,11 @@ class SizeChartEntry(BaseModel):
     measurements: list[Measurement]
     source: str = Field(
         description="'curated:archive', 'curated:historical-listings', 'user-contributed', etc."
+    )
+    tier: SizeChartTier = SizeChartTier.estimated
+    citations: list[str] = Field(
+        default_factory=list,
+        description="URLs or short refs that back the measurements. Required when tier='researched'.",
     )
     notes: str | None = None
 
@@ -291,6 +311,14 @@ class IngestResponse(BaseModel):
     canonical_measurements: list[Measurement] = Field(
         default_factory=list,
         description="Looked up from the sizing KB for the resolved (brand, line, era, size). May differ from seller-stated.",
+    )
+    canonical_tier: SizeChartTier | None = Field(
+        default=None,
+        description="Provenance of canonical_measurements — 'researched' means cited, 'estimated' means my best guess.",
+    )
+    canonical_citations: list[str] = Field(
+        default_factory=list,
+        description="URLs / refs backing the canonical measurements.",
     )
     photo_features: PhotoFeatures | None = None
     cross_matches: list[CrossMatchCandidate] = Field(

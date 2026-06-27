@@ -30,10 +30,16 @@ makes that possible.
 - **Infers era from tag markers + listing photos + brand KB** — combines
   country-of-origin tag markers with vision-model observations (collar style,
   fabric pattern, label aging) and ranks era candidates by signal weight
-- **Looks up canonical measurements** for the resolved (brand, line, era,
-  size) combo in a curated sizing knowledge base — so you get the "what
-  this size should actually measure" numbers, not just whatever the seller
-  bothered to write down
+- **Looks up canonical measurements** with honest provenance tiers:
+  - `researched` — backed by cited sources (brand archive, sampled listings,
+    sizing-comparison sites). Citations surfaced in the response and shown
+    in the iOS UI.
+  - `estimated` — my best-guess baseline. UI badges them ORANGE so the user
+    knows.
+- **Optionally researches live** when the curated KB has no `researched`
+  entry — calls Anthropic's `web_search` tool to pull canonical
+  measurements + citations on demand. Off by default; enable with
+  `RESEARCH_PROVIDER=anthropic` plus an `ANTHROPIC_API_KEY`.
 - **Cross-matches against other vintage collections** — finds other (brand,
   line, era, size) combos whose canonical measurements are within tolerance,
   so a Christian Dior Monsieur Bohan-era L can surface a J.Crew Slim Untucked
@@ -83,6 +89,26 @@ brew install xcodegen
 cd ios && xcodegen generate && open VintageFit.xcodeproj
 ```
 
+## Sizing data — measurement convention and provenance
+
+**Convention.** Every measurement in the sizing KB and every value the
+backend hands back is **pit-to-pit (half-chest), garment flat, in inches**.
+Brand size charts often publish *full chest circumference* — those values
+are divided by 2 before they enter the KB.
+
+**Provenance is part of the data.** Each `SizeChartEntry` carries a `tier`:
+
+| Tier | Meaning | UI |
+|---|---|---|
+| `researched` | Backed by cited sources in `citations`. Real numbers. | Green badge |
+| `estimated` | My best-guess baseline. Use with caution. | Orange badge |
+| `user_contributed` | A measurement the user added themselves. | Blue badge |
+
+The first researched entry in the seed KB is the Christian Dior Monsieur
+Bohan-era long-sleeve sport shirt — cited against Grailed listings that
+quote pit-to-pit measurements directly. Everything else is honestly tagged
+`estimated` until researched.
+
 ## Adding a brand to the knowledge bases
 
 Two YAMLs power the system:
@@ -94,8 +120,9 @@ Two YAMLs power the system:
 2. **Sizing KB** — `backend/app/sizing/data/<brand>.yaml`
    - One file can hold multiple `charts` (one per line × era × garment type)
    - Each chart maps size → {chest, length, shoulder, sleeve, …} in inches
-   - `source` records provenance; the UI surfaces it so the user knows
-     whether the numbers came from a brand archive or sampled listings
+     (pit-to-pit / half-chest)
+   - `tier`, `citations`, and `source` carry the provenance — the iOS UI
+     surfaces all three
 
 The cross-match engine considers any chart whose `garment_type` is
 compatible (shirt-to-shirt, blazer-to-jacket) and whose measurements fall
