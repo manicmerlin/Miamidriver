@@ -1,0 +1,50 @@
+canonical_name: Christian Dior Monsieur
+aliases:
+  - Dior Monsieur
+  - C. Dior Monsieur
+  - Monsieur Dior
+search_synonyms:
+  - "christian dior monsieur"
+  - "dior monsieur"
+  - "c dior monsieur"
+common_lines:
+  - Monsieur Sportif
+  - Cravattes
+  - Costumes
+eras:
+  - label: Marc Bohan Era (1970–1989)
+    years: [1970, 1989]
+    tag_markers:
+      - "Christian Dior Monsieur"
+      - "Made in France"
+      - "Made in Italy"
+    notable_lines:
+      - Monsieur Sportif
+    sizing_notes: >
+      European sizing — labelled in cm or 'S/M/L'. Runs roomy through the chest;
+      cuts tend toward fuller bodies, shorter sleeves than modern Dior Homme.
+  - label: Gianfranco Ferré Era (1989–1996)
+    years: [1989, 1996]
+    tag_markers:
+      - "Christian Dior Monsieur"
+      - "Made in Italy"
+    sizing_notes: >
+      Trousers high-rise with full thigh, jackets with broader shoulder than
+      Bohan-era. Heavier wools and gabardine common.
+  - label: Hedi Slimane Era (relabeled Dior Homme, 2000–2007)
+    years: [2000, 2007]
+    tag_markers:
+      - "Dior Homme"
+      - "Made in Italy"
+    notable_lines:
+      - Hedi Slimane Suit
+      - 19cm Jean
+    sizing_notes: >
+      Famously slim — 'Dior 19cm' jeans are extremely narrow. Sized 1 unit
+      smaller than typical EU labelling.
+search_tip_eras: >
+  Monsieur tags PRE-2000 are the goldmine — after that the line was rebranded
+  Dior Homme under Slimane and cut radically slimmer.
+notes: >
+  Always check fabric content and country of origin against the era — fakes
+  often use the wrong country tag for the decade claimed.

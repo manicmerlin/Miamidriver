@@ -1,0 +1,56 @@
+canonical_name: J.Crew
+aliases:
+  - JCrew
+  - J Crew
+  - J. Crew
+search_synonyms:
+  - j.crew
+  - jcrew
+  - "j crew"
+common_lines:
+  - Slim Untucked
+  - Flex Washed
+  - Ludlow
+  - Wallace & Barnes
+  - Crewcuts
+  - "770"
+  - "484"
+  - "1040"
+  - Bowery
+  - "Secret Wash"
+eras:
+  - label: Vintage J.Crew (1983–1999)
+    years: [1983, 1999]
+    tag_markers:
+      - "Made in U.S.A."
+      - "J.CREW outfitters"
+    notable_lines:
+      - Heavyweight Tee
+      - Roll-neck Sweater
+    sizing_notes: >
+      Boxier than modern J.Crew. Vintage M ≈ modern L in chest.
+  - label: Mickey Drexler Era (2003–2017)
+    years: [2003, 2017]
+    tag_markers:
+      - "Made in Mauritius"
+      - "Made in China"
+      - "Wallace & Barnes"
+    notable_lines:
+      - Slim Untucked
+      - Flex Washed
+      - Ludlow Suit
+      - Wallace & Barnes
+    sizing_notes: >
+      "Slim Untucked" is shorter back length than regular slim — sized for un-tucked wear.
+      Flex Washed shirts run true to size but soft, with stretch.
+  - label: Post-Bankruptcy (2020+)
+    years: [2020, 2026]
+    tag_markers:
+      - "Designed in NYC"
+      - "Made in Vietnam"
+    notable_lines:
+      - Bowery
+      - Broken-in Oxford
+notes: >
+  J.Crew tags shifted from "Made in U.S.A." to Mauritius / Sri Lanka / Vietnam
+  through the 2000s. "Slim Untucked" identifies the shorter back-length cut.
