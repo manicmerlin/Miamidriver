@@ -37,6 +37,12 @@ from ..schemas import (
 )
 from ..search_terms import generate_queries
 from ..sizing import canonical_measurements, lookup_size_chart
+from ..storage import (
+    chart_key,
+    record_cross_match_shown,
+    save_profile,
+    similarity_boost,
+)
 from ..vision import analyze_photos, classify_tag_image
 
 
@@ -127,10 +133,16 @@ async def ingest(
     exclude = None
     if profile.brand and profile.line and profile.era_label and profile.size_label:
         exclude = (profile.brand, profile.line, profile.era_label, profile.size_label)
+
+    # Similar-fit learning loop: pull learned boosts for this profile's key.
+    src_key = chart_key(profile.brand, profile.line, profile.era_label, profile.size_label)
+    boosts = similarity_boost(src_key)
+
     cross_matches: list[CrossMatchCandidate] = find_cross_matches(
         source_measurements=measurements_for_match,
         source_garment_type=profile.garment_type,
         exclude=exclude,
+        learned_boosts=boosts,
     )
 
     # Per-cross-match search queries: build a synthetic FitProfile for each
@@ -153,6 +165,17 @@ async def ingest(
         cm.query = depop
 
     queries = generate_queries(profile)
+
+    # Persist the profile + record which cross-matches were shown, so the
+    # learning loop can reinforce them on subsequent /v1/learn calls.
+    save_profile(profile)
+    record_cross_match_shown(
+        profile.id,
+        [
+            chart_key(c.entry.brand, c.entry.line, c.entry.era_label, c.entry.size_label)
+            for c in cross_matches
+        ],
+    )
 
     return IngestResponse(
         source=primary,

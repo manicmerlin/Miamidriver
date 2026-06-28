@@ -1,8 +1,12 @@
 import SwiftUI
 
 struct CrossMatchesView: View {
+    let sourceProfileID: String
     let matches: [CrossMatchCandidate]
-    let sourceCanonical: [Measurement]
+
+    @EnvironmentObject var store: LocalStore
+    @EnvironmentObject var settings: AppSettings
+    @EnvironmentObject var api: APIClient
 
     var body: some View {
         if matches.isEmpty {
@@ -31,7 +35,7 @@ struct CrossMatchesView: View {
                             .foregroundStyle(.secondary)
                     }
                     if let query = m.query, let top = query.queries.first {
-                        HStack {
+                        HStack(spacing: 8) {
                             Text(top).lineLimit(1).font(.footnote)
                             Spacer()
                             Button {
@@ -45,10 +49,29 @@ struct CrossMatchesView: View {
                                     Image(systemName: "arrow.up.right.square")
                                 }
                             }
+                            Button {
+                                reinforce(match: m)
+                            } label: {
+                                Image(systemName: "heart")
+                            }
+                            .buttonStyle(.borderless)
                         }
                     }
                 }
                 .padding(.vertical, 4)
+            }
+        }
+    }
+
+    private func reinforce(match: CrossMatchCandidate) {
+        let targetKey = store.chartKey(brand: match.entry.brand, line: match.entry.line,
+                                       era: match.entry.eraLabel, size: match.entry.sizeLabel)
+        if let profile = store.profiles.first(where: { $0.id == sourceProfileID }) {
+            store.recordFindMore(sourceProfile: profile, target: match)
+        }
+        if !settings.useMockBackend {
+            Task {
+                try? await api.learn(sourceProfileID: sourceProfileID, targetChartKey: targetKey)
             }
         }
     }

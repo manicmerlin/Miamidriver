@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from ..schemas import CrossMatchCandidate, GarmentType, Measurement, SizeChartEntry
 from ..sizing import all_charts
+from ..storage import chart_key
 
 
 # Per-measurement tolerance in inches. A measurement outside tolerance is a
@@ -55,11 +56,16 @@ def find_cross_matches(
     source_garment_type: GarmentType,
     exclude: tuple[str, str, str, str] | None = None,
     limit: int = 8,
+    learned_boosts: dict[str, float] | None = None,
 ) -> list[CrossMatchCandidate]:
     """Find size-chart entries with measurements close to `source_measurements`.
 
     `exclude` is the (brand, line, era_label, size_label) of the source garment
     so we don't suggest it back to the user.
+
+    `learned_boosts` maps a target chart_key to a non-negative bonus weight;
+    candidates with a positive boost have their normalized distance reduced
+    so the user-reinforced pairs surface first.
     """
     src = _by_name(source_measurements)
     if not src:
@@ -103,6 +109,14 @@ def find_cross_matches(
             continue
 
         distance = round(total_norm / len(common), 3)
+
+        if learned_boosts:
+            target_key = chart_key(entry.brand, entry.line, entry.era_label, entry.size_label)
+            boost = learned_boosts.get(target_key, 0.0)
+            if boost:
+                # Each reinforcement subtracts 0.05 from normalized distance,
+                # capped at 0.5 to keep dimensions meaningful.
+                distance = round(max(0.0, distance - min(0.5, 0.05 * boost)), 3)
 
         candidates.append(
             CrossMatchCandidate(

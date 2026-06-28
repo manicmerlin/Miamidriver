@@ -1,4 +1,8 @@
-# VintageFit iOS (skeleton)
+# VintageFit iOS
+
+See **[TESTFLIGHT.md](TESTFLIGHT.md)** for step-by-step TestFlight upload.
+
+
 
 SwiftUI client for the VintageFit backend. v0 surface:
 

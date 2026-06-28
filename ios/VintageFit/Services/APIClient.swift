@@ -2,7 +2,7 @@ import Foundation
 
 @MainActor
 final class APIClient: ObservableObject {
-    let baseURL: URL
+    @Published var baseURL: URL
     private let session: URLSession
 
     init(baseURL: URL, session: URLSession = .shared) {
@@ -29,8 +29,20 @@ final class APIClient: ObservableObject {
             let body = String(data: data, encoding: .utf8) ?? "<no body>"
             throw APIError.server(status: (response as? HTTPURLResponse)?.statusCode ?? -1, body: body)
         }
-        let decoder = JSONDecoder()
-        return try decoder.decode(IngestResponse.self, from: data)
+        return try JSONDecoder().decode(IngestResponse.self, from: data)
+    }
+
+    func learn(sourceProfileID: String, targetChartKey: String) async throws {
+        let endpoint = baseURL.appendingPathComponent("v1/learn")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let payload = ["source_profile_id": sourceProfileID, "target_chart_key": targetChartKey]
+        request.httpBody = try JSONEncoder().encode(payload)
+        let (_, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw APIError.server(status: (response as? HTTPURLResponse)?.statusCode ?? -1, body: "")
+        }
     }
 
     private static func makeMultipart(boundary: String, url: String?, notes: String?, imageData: Data?) -> Data {

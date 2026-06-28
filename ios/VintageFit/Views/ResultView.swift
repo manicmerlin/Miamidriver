@@ -80,7 +80,8 @@ struct ResultView: View {
             }
 
             Section("Other collections that should fit similarly") {
-                CrossMatchesView(matches: response.crossMatches, sourceCanonical: response.canonicalMeasurements)
+                CrossMatchesView(sourceProfileID: response.profile.id,
+                                 matches: response.crossMatches)
             }
 
             ForEach(response.queries) { q in
