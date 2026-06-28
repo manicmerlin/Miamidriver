@@ -1,0 +1,45 @@
+brand: J.Crew
+charts:
+  - line: Slim Untucked
+    era_label: Mickey Drexler Era (2003–2017)
+    garment_type: shirt
+    tier: estimated
+    source: "estimated:claude-baseline"
+    notes: >
+      All values are pit-to-pit (half-chest), garment flat, inches. J.Crew's
+      published web size chart blocked WebFetch in dev; values below are
+      directionally consistent with The Peak Lapel's 2018 review of the
+      Untucked fit (chest slightly roomier than Slim, length ~1" shorter,
+      sleeves ~1" shorter). Treat as estimated until researched live.
+    sizes:
+      XS: {chest: 19.0, length: 27.5, shoulder: 16.5, sleeve: 23.5}
+      S:  {chest: 20.0, length: 28.0, shoulder: 17.0, sleeve: 24.0}
+      M:  {chest: 21.0, length: 28.5, shoulder: 17.5, sleeve: 24.5}
+      L:  {chest: 22.0, length: 29.0, shoulder: 18.5, sleeve: 25.0}
+      XL: {chest: 23.0, length: 29.5, shoulder: 19.5, sleeve: 25.5}
+
+  - line: Flex Washed
+    era_label: Mickey Drexler Era (2003–2017)
+    garment_type: shirt
+    tier: estimated
+    source: "estimated:claude-baseline"
+    notes: >
+      Cotton with stretch — runs true to size, regular-length back (not the
+      shorter Slim Untucked cut). All values pit-to-pit / half-chest, inches.
+    sizes:
+      S:  {chest: 20.5, length: 30.0, shoulder: 17.5, sleeve: 24.5}
+      M:  {chest: 21.5, length: 30.5, shoulder: 18.0, sleeve: 25.0}
+      L:  {chest: 22.5, length: 31.0, shoulder: 19.0, sleeve: 25.5}
+      XL: {chest: 23.5, length: 31.5, shoulder: 20.0, sleeve: 26.0}
+
+  - line: Vintage J.Crew Oxford
+    era_label: Vintage J.Crew (1983–1999)
+    garment_type: shirt
+    tier: estimated
+    source: "estimated:claude-baseline"
+    notes: >
+      Boxier than modern. Estimated based on the broader fit Made-in-USA tag
+      cohort produced — not researched against a citation yet.
+    sizes:
+      M: {chest: 22.0, length: 30.0, shoulder: 19.0, sleeve: 25.0}
+      L: {chest: 23.5, length: 31.0, shoulder: 20.0, sleeve: 25.5}

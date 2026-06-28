@@ -1,0 +1,42 @@
+# fly.io configuration for the VintageFit backend.
+#
+# One-time setup:
+#   brew install flyctl
+#   fly auth login
+#   fly launch --copy-config --no-deploy   # creates the app
+#   fly volumes create vintagefit_data --size 1
+#   fly secrets set ANTHROPIC_API_KEY=sk-... VISION_PROVIDER=anthropic RESEARCH_PROVIDER=anthropic
+#   fly deploy
+#
+# Subsequent deploys:
+#   fly deploy
+
+app = "vintagefit-backend"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  DATA_DIR = "/data"
+
+[[mounts]]
+  source = "vintagefit_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 20
+    hard_limit = 40
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

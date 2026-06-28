@@ -1,0 +1,8 @@
+canonical_name: Unknown Brand
+aliases: []
+search_synonyms: []
+common_lines: []
+eras: []
+notes: >
+  Placeholder record used when no specific brand match is found.
+  search-term generator still produces useful queries from garment_type + era_hint.
