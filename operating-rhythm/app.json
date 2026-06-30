@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "Operating Rhythm",
+    "slug": "operating-rhythm",
+    "version": "0.1.0",
+    "scheme": "operatingrhythm",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0E1620"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.operatingrhythm.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSUserNotificationsUsageDescription": "Operating Rhythm uses scheduled local notifications for your daily orders, weekly briefing, and twice-yearly defaults review."
+      }
+    },
+    "android": {
+      "package": "com.operatingrhythm.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0E1620"
+      },
+      "permissions": ["RECEIVE_BOOT_COMPLETED", "SCHEDULE_EXACT_ALARM"],
+      "intentFilters": [
+        {
+          "action": "SEND",
+          "category": ["DEFAULT"],
+          "data": [{ "mimeType": "text/plain" }]
+        }
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "color": "#B7892D",
+          "defaultChannel": "default"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
